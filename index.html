@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LangChain LLM</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+
+    <style>
+* {
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+textarea, input, button, select {
+  font-size: medium;
+}
+
+fieldset {
+  border: none;
+  background-color: #e9e9e9;
+  padding: 20px;
+}
+fieldset .group {
+  display: inline-grid;
+  margin: 4px;
+}
+
+.row {
+  display: flex;
+}
+.column {
+  flex: 50%;
+  margin: 10px;
+}
+
+textarea {
+  width: calc(100% - 20px);
+  padding: 10px;
+}
+#response {
+  border: none;
+  color: #686868;
+  background-color: #e9e9e9;
+  cursor: auto;
+}
+
+#abort-btn {
+  display: none;
+}
+.working #abort-btn {
+  display: inline-block;
+}
+    </style>
+</head>
+<body>
+  <p>
+    Le prompt "Analyse ce rêve !" provient de <a href="https://docs.anthropic.com/fr/prompt-library/library">la bibliothèque</a> d'<a href="https://www.anthropic.com/">Antrop\c</a> et "Consultant javascript" est inspiré de <a href="https://docs.anthropic.com/fr/prompt-library/code-consultant">Consultant en code</a>.
+    <br/>Le prompt "Quelle est cette ville ?" est une illustration d'une invocation retournant une information structurée.    
+  </p>
+  <fieldset>
+    <legend>🛠 Configuration</legend>
+      <div class="group">
+        <label for="basePath">URL</label>
+        <input type="text" id="basePath" name="basePath" required minlength="11" size="30" value=""/>
+      </div>
+
+      <div class="group">
+        <label for="apiKey">Clé</label>
+        <input type="text" id="apiKey" name="apiKey" required minlength="11" size="30" value=""/>
+      </div>
+
+      <div class="group">
+        <label for="model">Modèle</label>
+        <input type="text" id="model" name="model" required minlength="11" size="30" value=""/>
+      </div>
+      <div class="group">
+        <label for="temperature">Température</label>
+        <input type="number" id="temperature" name="temperature" required min="0" max="1.0" value="1.0"/>
+      </div>
+      <div class="group">
+        <label for="maxTokens">Jetons max</label>
+        <input type="number" id="maxTokens" name="maxTokens" required min="-1" max="1000" value="-1"/>
+      </div>
+
+      <div class="group1">
+      <button id="reconfigureBtn" onclick="abortUi(); reconfigureUi()">🛠 Reconfigurer</button>
+      <label>Charger la configuration</label>
+      <button id="reconfigureLocalBtn" class="group" onclick="abortUi(); loadLocalConfig()">locale</button>
+      <button id="reconfigureLocalBtn" class="group" onclick="abortUi(); loadChatGptConfig('gpt-4o')">gpt-4o</button>
+      <button id="reconfigureLocalBtn" class="group" onclick="abortUi(); loadChatGptConfig('gpt-4-turbo')">gpt-4-turbo</button>
+      <button id="reconfigureLocalBtn" class="group" onclick="abortUi(); loadChatGptConfig('gpt-4')">gpt-4</button>
+      <button id="reconfigureLocalBtn" class="group" onclick="abortUi(); loadChatGptConfig('gpt-3.5-turbo')">gpt-3.5-turbo</button>
+      </div>
+  </fieldset>
+
+
+  <fieldset>
+    <label for="example">Exemple</label>
+    <select name="examples" id="examples" onchange="promptSelected()"></select>
+  </fieldset>
+
+  <div class="row">
+    <div class="column">
+    <label for="request-system">✌ Description de l'IA</label>
+    <p><textarea id="request-system" name="request-system" rows="7" cols="100">
+    </textarea></p>
+      
+    <label for="request-system">✍ Demande</label>
+    <p><textarea id="request-human" name="request-system" rows="7" cols="100">
+    </textarea></p>
+
+    <button onclick="abortUi(); invokeUi()">🗨 Interroger</button>
+    <button id="abort-btn" onclick="abortUi()">🙅 Arrêter</button>
+</div>
+    <div class="column">
+      <label for="response">✨ Réponse</label>
+    <p><textarea id="response" name="response" rows="18" cols="100" readonly></textarea></p>
+</div>
+  </div>
+    <script type="module">
+
+// Pour OpenAI, récupérer sa clé > https://platform.openai.com/api-keys
+
+import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
+import { HumanMessage, SystemMessage } from "https://esm.sh/@langchain/core/messages";
+import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
+
+// Gestion des prompts
+const prompts = [{
+  label: 'Analyse ce rêve !',
+  system: `Vous êtes un assistant IA avec une compréhension profonde de l’interprétation des rêves et du symbolisme. Votre tâche est de fournir aux utilisateurs des analyses perspicaces et significatives des symboles, des émotions et des récits présents dans leurs rêves. Proposez des interprétations potentielles tout en encourageant l’utilisateur à réfléchir sur ses propres expériences et émotions.`,
+  human : `J’ai fait un rêve la nuit dernière dans lequel je marchais à travers une forêt dense. Les arbres étaient grands et sombres, et je pouvais entendre d’étranges murmures venant des ombres. Soudain, je suis tombé sur une clairière où j’ai trouvé un majestueux cerf blanc se tenant au centre. Alors que je m’approchais du cerf, il s’est transformé en un vieux sage qui m’a tendu une clé en or. Puis je me suis réveillé. Que pourrait signifier ce rêve ?`
+}, {
+  label: 'Quelle est cette ville ?',
+  system: `Tu es un expert en géographie et historien des communes de France. Expert du jeu "Qui veut gagner la palme ?" Tu donnes progressivement des indices qui permettent de trouver une ville de ton choix en 3 phrases.
+Si je t'indique un pays ou une région, la ville doit appartenir à la zone, sinon, tu es libre de choisir mais jamais deux fois la même commune.
+A la fin, tu fournis la ville et l'info qui me permettra d'appeler la fonction fit de la vue d'une carte Openlayers avec des coordonnées exprimées dans la projection EPSG:3857 (WGS 84).
+
+Je voudrais une réponse en json de la forme : {indices: ['', '', '', '', ''], reponse: {nom: '', extent: [x, x x, x]}}.
+Et si possible avec une indentation à 2 caractères.`,
+  human: "C'est parti !"
+}, {
+  label: 'Consultant javascript',
+  system: `Votre tâche consiste à analyser l’extrait de code javascript fourni et à suggérer des améliorations pour optimiser ses performances. Identifiez les domaines où le code peut être rendu plus efficace, plus rapide ou moins gourmand en ressources. Fournissez des suggestions spécifiques d’optimisation, ainsi que des explications sur la façon dont ces changements peuvent améliorer les performances du code. Le code optimisé doit conserver les mêmes fonctionnalités que le code original tout en démontrant une efficacité accrue.`,
+  human : `var i, len = myArray.length;
+for (i = 0; i !== len; i += 1) {
+    console.log( myArray[ i ] );
+}`
+}];
+
+// Initialisation des options du select
+const examplesSelect = document.getElementById("examples");
+prompts.forEach(prompt => {
+  let option = document.createElement("option");
+  option.text = prompt.label;
+  examplesSelect.add(option);
+});
+setPrompt(prompts[0]);
+
+// Définition d'un nouveau prompt
+function setPrompt(prompt) {
+  document.getElementById('request-system').value = prompt.system;
+  document.getElementById('request-human').value = prompt.human;
+}
+
+// Sélection d'un prompt
+window.promptSelected = function(prompt) {
+   setPrompt(prompts[examplesSelect.selectedIndex]);
+}
+
+let chat;
+
+// Pour récupérer directement le contenu sous forme de chaine de caractères
+const parser = new StringOutputParser();
+
+// Pour annuler une requête
+let abortController;
+
+async function invokeAi(requestSystem, requestHuman) {
+  abortController = new AbortController();
+
+  const messages = [
+    new SystemMessage(requestSystem),
+    new HumanMessage(requestHuman),
+  ];
+
+  let responseElt = document.getElementById('response');
+  responseElt.textContent = '';
+  
+  // On attend la réponse complète
+  // const result = await chat.invoke(messages);
+  // responseElt.textContent = chunk.content;
+
+  // En streaming
+  const stream = await chat.pipe(parser).stream(messages, { signal: abortController.signal });
+  for await (const chunk of stream) {
+    responseElt.textContent += responseElt.value.length<1 ? chunk.trimStart() : chunk/*sans le parser : chunk.content*/;
+    responseElt.scrollTop = responseElt.scrollHeight;
+  }
+}
+
+window.loadLocalConfig = function() {
+document.getElementById('basePath').value = 'http://127.0.0.1:1234/v1';
+  document.getElementById('apiKey').value = 'non nécessaire';
+  document.getElementById('model').value = '';
+  reconfigureUi();
+}
+window.loadChatGptConfig = function(model) {
+  document.getElementById('basePath').value = '';
+  document.getElementById('apiKey').value = 'à définir ici !';
+  document.getElementById('model').value = model;
+  reconfigureUi();
+}
+
+window.reconfigureUi = function() {
+  let basePath = document.getElementById('basePath').value;
+  let apiKey = document.getElementById('apiKey').value;
+  let model = document.getElementById('model').value;
+  let temperature = document.getElementById('temperature').value;
+  let maxTokens = document.getElementById('maxTokens').value;
+
+  chat = new ChatOpenAI({
+    apiKey: apiKey,
+    model: model,
+    temperature: temperature,
+    maxTokens: maxTokens,
+  }, {
+    basePath: basePath
+  });
+}
+
+window.abortUi = function() {
+  if (abortController) {
+    abortController.abort();
+  }
+}
+
+window.invokeUi =  async function() {
+  document.body.classList.add('working');
+
+  let requestSystem = document.getElementById('request-system').value;
+  let requestHuman = document.getElementById('request-human').value;
+
+  try {
+    await invokeAi(requestSystem, requestHuman);
+  } catch(e) {
+    if (e.message !== 'AbortError') {
+      console.error('Erreur', e);
+    }
+  }
+  document.body.classList.remove('working');
+}
+
+loadLocalConfig();
+    </script>
+</body>
+</html>
+
