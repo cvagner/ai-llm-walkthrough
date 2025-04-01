@@ -77,21 +77,17 @@ textarea {
       </div>
       <div class="group">
         <label for="temperature">Température</label>
-        <input type="number" id="temperature" name="temperature" required min="0" max="1.0" value="1.0"/>
+        <input type="number" id="temperature" name="temperature" required min="0" max="100" value="0"/>
       </div>
       <div class="group">
-        <label for="maxTokens">Jetons max</label>
-        <input type="number" id="maxTokens" name="maxTokens" required min="-1" max="1000" value="-1"/>
+        <label for="maxRetries">Tentatives max</label>
+        <input type="number" id="maxRetries" name="maxRetries" required min="0" max="10" value="0"/>
       </div>
 
       <div class="group1">
       <button id="reconfigureBtn" onclick="abortUi(); reconfigureUi()">🛠 Reconfigurer</button>
       <label>Charger la configuration</label>
       <button id="reconfigureLocalBtn" class="group" onclick="abortUi(); loadLocalConfig()">locale</button>
-      <button id="reconfigureLocalBtn" class="group" onclick="abortUi(); loadChatGptConfig('gpt-4o')">gpt-4o</button>
-      <button id="reconfigureLocalBtn" class="group" onclick="abortUi(); loadChatGptConfig('gpt-4-turbo')">gpt-4-turbo</button>
-      <button id="reconfigureLocalBtn" class="group" onclick="abortUi(); loadChatGptConfig('gpt-4')">gpt-4</button>
-      <button id="reconfigureLocalBtn" class="group" onclick="abortUi(); loadChatGptConfig('gpt-3.5-turbo')">gpt-3.5-turbo</button>
       </div>
   </fieldset>
 
@@ -121,11 +117,10 @@ textarea {
   </div>
     <script type="module">
 
-// Pour OpenAI, récupérer sa clé > https://platform.openai.com/api-keys
-
-import { ChatOpenAI } from "https://esm.sh/@langchain/openai";
-import { HumanMessage, SystemMessage } from "https://esm.sh/@langchain/core/messages";
-import { StringOutputParser } from "https://esm.sh/@langchain/core/output_parsers";
+// v134 : cf. https://github.com/esm-dev/esm.sh/issues/1037
+import { Ollama } from "https://esm.sh/v134/@langchain/ollama";
+import { HumanMessage, SystemMessage } from "https://esm.sh/v134/@langchain/core@0.3/messages";
+import { StringOutputParser } from "https://esm.sh/v134/@langchain/core@0.3/output_parsers";
 
 // Gestion des prompts
 const prompts = [{
@@ -202,32 +197,31 @@ async function invokeAi(requestSystem, requestHuman) {
 }
 
 window.loadLocalConfig = function() {
-document.getElementById('basePath').value = 'http://127.0.0.1:1234/v1';
+document.getElementById('basePath').value = 'http://localhost:11435';
   document.getElementById('apiKey').value = 'non nécessaire';
-  document.getElementById('model').value = '';
+  document.getElementById('model').value = 'llama3.2:latest';
   reconfigureUi();
 }
-window.loadChatGptConfig = function(model) {
-  document.getElementById('basePath').value = '';
-  document.getElementById('apiKey').value = 'à définir ici !';
-  document.getElementById('model').value = model;
-  reconfigureUi();
-}
+// window.loadChatGptConfig = function(model) {
+//   document.getElementById('basePath').value = '';
+//   document.getElementById('apiKey').value = 'à définir ici !';
+//   document.getElementById('model').value = model;
+//   reconfigureUi();
+// }
 
 window.reconfigureUi = function() {
   let basePath = document.getElementById('basePath').value;
   let apiKey = document.getElementById('apiKey').value;
   let model = document.getElementById('model').value;
   let temperature = document.getElementById('temperature').value;
-  let maxTokens = document.getElementById('maxTokens').value;
+  let maxRetries = document.getElementById('maxRetries').value;
 
-  chat = new ChatOpenAI({
+  chat = new Ollama({
+    baseUrl: basePath,
     apiKey: apiKey,
     model: model,
-    temperature: temperature,
-    maxTokens: maxTokens,
-  }, {
-    basePath: basePath
+    temperature: parseFloat(temperature),
+    maxRetries: maxRetries,
   });
 }
 

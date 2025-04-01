@@ -1,0 +1,59 @@
+name: open-webui
+
+networks:
+  open-webui:
+    driver: bridge
+
+volumes:
+  ollama-data:
+  open-webui-data:
+
+x-logging:
+    &default-logging
+      options:
+        max-size: "10k"
+        max-file: "20"
+
+services:
+  ollama:
+    image: ollama/ollama:${OLLAMA_DOCKER_TAG-latest}
+    # pull_policy: always
+    # tty: true
+    environment:
+      - OLLAMA_ORIGINS=${OLLAMA_ORIGINS:-"*"}
+    #   - OLLAMA_HOST=${OLLAMA_HOST:-127.0.0.1}
+    volumes:
+      - ollama-data:/root/.ollama
+      # - ${OLLAMA_DATA_DIR-./ollama-data}:/root/.ollama
+    networks:
+      - open-webui
+    ports:
+      - ${OLLAMA_WEBAPI_PORT-11434}:11434
+    # GPU support
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: ${OLLAMA_GPU_DRIVER-nvidia}
+              count: ${OLLAMA_GPU_COUNT-1}
+              capabilities:
+                - gpu
+    restart: unless-stopped
+    logging: *default-logging
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:${WEBUI_DOCKER_TAG-main}
+    environment:
+      - "OLLAMA_BASE_URL=http://ollama:11434"
+      - 'WEBUI_SECRET_KEY='
+    volumes:
+      - open-webui-data:/app/backend/data
+      # - ${WEBUI_DATA_DIR-./open-webui-data}:/app/backend/data
+    depends_on:
+      - ollama
+    networks:
+      - open-webui
+    ports:
+      - ${OPEN_WEBUI_PORT-3000}:8080
+    restart: unless-stopped
+    logging: *default-logging
