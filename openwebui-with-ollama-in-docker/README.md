@@ -40,6 +40,6 @@ docker compose down -v
 ## Intégration
 
 Page de démonstration d'une intégration avec LangChain :
-* cf. [index.html]().
+* cf. [index.html](index.html).
 
 ![LangChain Chat](langchain_chat.png)

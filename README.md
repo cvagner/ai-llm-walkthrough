@@ -6,7 +6,7 @@ Un LLM est un modèle d'apprentissage profond entraîné sur un gros volume de d
 
 ## Open WebUI et Ollama (`docker` et intégration)
 
-Cf. [openwebui-with-ollama-in-docker/README.md]()
+Cf. [openwebui-with-ollama-in-docker/README.md](openwebui-with-ollama-in-docker/README.md)
 
 **Interface utilisateur d'Open WebUI :**
 * ![Open WebUI Chat](openwebui-with-ollama-in-docker/openwebui_chat.png)
@@ -16,7 +16,7 @@ Cf. [openwebui-with-ollama-in-docker/README.md]()
 
 ## Langchain et LMStudio (intégration)
 
-Cf. [langchain-with-lmstudio/README.md]()
+Cf. [langchain-with-lmstudio/README.md](langchain-with-lmstudio/README.md)
 
 **Interface utilisateur de LMStudio :**
 * ![Open WebUI Chat](langchain-with-lmstudio/lmstudio.png)
