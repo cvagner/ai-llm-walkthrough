@@ -1,0 +1,1865 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Handball Arena — Attaque / Défense</title>
+<style>
+  :root{--gold:#ffcc33}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#070b14;font-family:"Segoe UI",system-ui,Arial,sans-serif;color:#fff}
+  canvas{display:block}
+  #ui{position:fixed;inset:0;pointer-events:none;user-select:none}
+  .chip{background:#0009;border:2px solid #ffffff22;border-radius:12px;padding:8px 18px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:15px;text-shadow:0 2px 6px #000}
+  .chipBtn{pointer-events:auto;cursor:pointer;background:#0009;border:2px solid #ffffff22;border-radius:12px;padding:8px 18px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:15px;color:#fff;font-family:inherit}
+  .chipBtn:hover{border-color:#ffffff55}
+  #top{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;gap:14px;align-items:center}
+  #timer{font-size:22px;color:var(--gold);min-width:86px;text-align:center}
+  #msgWrap{position:absolute;top:26%;left:0;right:0;text-align:center;opacity:0;transition:opacity .25s}
+  #msgWrap.show{opacity:1}
+  #msg{font-size:62px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.04em;text-shadow:0 0 24px #0009,0 4px 0 #0007}
+  #sub{font-size:20px;font-weight:700;color:#ffe08a;margin-top:6px;text-shadow:0 2px 8px #000}
+  #power{position:absolute;bottom:56px;left:50%;transform:translateX(-50%);width:260px;height:16px;background:#000a;border:2px solid #ffffff44;border-radius:9px;display:none;overflow:hidden}
+  #powerFill{height:100%;width:0%;background:linear-gradient(90deg,#37d67a,#ffd23e,#ff4d4d)}
+  #hint{position:absolute;bottom:16px;left:16px;font-size:13px;line-height:1.8;color:#cfd8ea;background:#0008;border:1px solid #ffffff18;border-radius:10px;padding:10px 14px}
+  #hint b{color:var(--gold)}
+  .panel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at center,#0b1322cc,#05080fee);pointer-events:auto}
+  .card{text-align:center;padding:44px 60px;border-radius:22px;background:#0d1524ee;border:2px solid #ffffff1c;box-shadow:0 30px 80px #000c}
+  h1{font-size:52px;font-weight:900;font-style:italic;text-transform:uppercase;letter-spacing:.02em;line-height:1.05}
+  h1 span{color:var(--gold)}
+  .tag{margin-top:8px;color:#9fb2cf;font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:13px}
+  .btns{margin-top:30px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+  button{pointer-events:auto;cursor:pointer;font:inherit;font-weight:800;text-transform:uppercase;letter-spacing:.06em;font-size:16px;color:#fff;background:#16307a;border:2px solid #ffffff2b;padding:14px 26px;border-radius:12px;transition:transform .12s,background .12s}
+  button:hover{transform:translateY(-2px);background:#1d3f9d}
+  button.alt{background:#14663c}
+  button.alt:hover{background:#1a8450}
+  #end{display:none}
+  #endStats{margin-top:18px;font-size:17px;line-height:2;color:#dbe6f7}
+  #endStats b{color:var(--gold)}
+  #verdict{margin-top:10px;font-size:22px;font-weight:800;color:#fff}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+<div id="ui">
+  <div id="top">
+    <div class="chip">BUTS <span id="scGoals">0</span></div>
+    <div class="chip" id="timer">45</div>
+    <div class="chip">ARRÊTS <span id="scSaves">0</span></div>
+    <div class="chip" id="phaseLbl">—</div>
+    <div class="chip hidden" id="chipSlow">RALENTI</div>
+    <button id="chipVoice" class="chipBtn">VOIX ON</button>
+    <button id="chipCrowd" class="chipBtn">FOULE ON</button>
+    <button id="chipRef" class="chipBtn">ARBITRE ON</button>
+  </div>
+  <div id="msgWrap"><div id="msg"></div><div id="sub"></div></div>
+  <div id="power"><div id="powerFill"></div></div>
+  <div id="hint"></div>
+
+  <div class="panel" id="menu">
+    <div class="card">
+      <h1>HANDBALL <span>ARENA</span></h1>
+      <div class="tag">Duel attaque / défense · 2 × 45 s</div>
+      <div class="btns">
+        <button id="btnAtk">Commencer par l'Attaque</button>
+        <button id="btnDef" class="alt">Commencer par la Défense</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" id="end">
+    <div class="card">
+      <h1>MATCH <span>TERMINÉ</span></h1>
+      <div id="verdict"></div>
+      <div id="endStats"></div>
+      <div class="btns"><button id="btnReplay">Rejouer</button></div>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js"}}
+</script>
+
+<script type="module">
+/* ============================================================
+   HANDBALL ARENA — petit jeu d'attaque / défense en three.js
+   ------------------------------------------------------------
+   Déroulé : 2 périodes de 45 s (attaque puis défense).
+   Attaque  : courir, viser, tirer (souvent en suspension),
+              passer (E/clic droit), feinte 3 appuis (Maj),
+              roulette (R). Mur 6-0 adverse + gardien IA.
+   Défense  : vous êtes gardien (souris/flèches, plongeon),
+              l'attaquant IA joue parfois une passe avant de tirer.
+   Divers   : ralentis cinématiques, commentateur vocal,
+              public visuel & sonore, arbitre Zoro.
+   ============================================================ */
+import * as THREE from 'three';
+
+/* ---------- CONSTANTES DU TERRAIN & DU JEU ---------- */
+// Demi-longueur (20 m) et demi-largeur (10 m) : le terrain fait 40 x 20 m.
+const HL=20, HW=10;
+// Demi-largeur de cage (1,5 m), hauteur 2 m, rayon du ballon, gravité réaliste.
+const GOAL_HW=1.5, GOAL_H=2, BALL_R=.12, GRAV=9.81;
+// Durée d'une période en secondes.
+const PHASE_TIME=45;
+
+/* ---------- ÉTAT GLOBAL ----------
+   mode        : menu | play | wait | transition | replay | end
+   phase       : 'attack' ou 'defense'
+   outcome     : fin d'action en cours (goal/save/block/post/out…)
+   charging    : frappe en cours de chargement (clic/espace maintenu)
+   susp        : tir en suspension en cours (saut puis relâchement)
+   duel        : geste spécial actif (feinte 3 appuis ou roulette)
+   passTo      : coéquipier ciblé par une passe du joueur humain
+   aiPassTo    : receveur d'une passe de l'attaquant IA
+   stats       : buts, tirs, arrêts, tirs subis
+*/
+const S={
+  mode:'menu', phase:null, idx:0, timer:PHASE_TIME, runId:0,
+  outcome:null, outcomeT:0,
+  charging:false, chargeT:0, aim:new THREE.Vector3(0,1.2,-HL),
+  aimD:new THREE.Vector3(0,1.2,HL),
+  ndc:new THREE.Vector2(0,0),
+  gkTX:0,
+  shotFrom:new THREE.Vector3(0,0,999),
+  stats:{goals:0,shots:0,saves:0,faced:0},
+  keeper:{state:'idle',x:0,react:0,err:1,noise:0,predX:0,predY:0,jumpT:-1,jumped:false,diveT:-1,dived:false,diveDir:1},
+  dive:{active:false,t:0,cool:0,from:0,to:0,toY:1,dir:1},
+  striker:null,
+  active:null,passTo:null,aiPassTo:null,passCd:0,
+  duel:null,duelCd:0,jukeSign:1,specialUntil:-9,
+  pendingReplay:false,replayDelay:0,animThrow:null,reflex:null,saidTen:false,
+  marioArmed:false,marioAt:null,
+  lastShotDist:0,lastShotPow:0,
+  activeRole:'CB',strikerRole:'CB',jumpT:null,susp:null
+};
+
+// Références des éléments de l'interface (HUD).
+const $=id=>document.getElementById(id);
+// Raccourcis vers les noeuds DOM mis à jour pendant le match.
+const ui={goals:$('scGoals'),saves:$('scSaves'),timer:$('timer'),phase:$('phaseLbl'),chip:$('chipSlow'),
+  msgWrap:$('msgWrap'),msg:$('msg'),sub:$('sub'),power:$('power'),fill:$('powerFill'),hint:$('hint'),
+  menu:$('menu'),end:$('end'),verdict:$('verdict'),endStats:$('endStats')};
+
+/* ---------- AUDIO ---------- */
+// Contexte audio partagé, créé après la première interaction utilisateur.
+let AC=null;
+function audio(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();initCrowd();return AC;}catch(e){return null;}}
+// Bip synthétisé : glissando f0->f1, durée, forme d'onde, volume, délai.
+function tone(f0,f1,d,type='square',v=.15,delay=0){
+  const a=audio(); if(!a)return;
+  const t=a.currentTime+delay,o=a.createOscillator(),g=a.createGain();
+  o.type=type;o.frequency.setValueAtTime(Math.max(30,f0),t);
+  if(f1&&f1!==f0)o.frequency.exponentialRampToValueAtTime(Math.max(30,f1),t+d);
+  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+  o.connect(g).connect(a.destination);o.start(t);o.stop(t+d+.05);
+}
+// Effets sonores du jeu (tir, but, arrêt, poteau, sifflet…).
+const sfx={
+  shot:()=>tone(300,90,.09,'square',.16),
+  goal:()=>{tone(392,392,.12,'sawtooth',.2);tone(523,523,.12,'sawtooth',.2,.12);tone(659,880,.32,'sawtooth',.22,.24)},
+  concede:()=>{tone(330,330,.14,'sawtooth',.16);tone(220,160,.35,'sawtooth',.18,.14)},
+  save:()=>tone(150,60,.18,'sine',.3),
+  post:()=>tone(1100,480,.09,'square',.2),
+  block:()=>tone(230,80,.12,'square',.24),
+  whistle:()=>{tone(2150,2150,.13,'triangle',.22);tone(2150,2150,.3,'triangle',.22,.2)}
+};
+
+/* ---------- COMMENTAIRE VOCAL (Web Speech API) ---------- */
+// VOICE.voice  : voix française préférée ; voiceEn : voix anglaise (Mario).
+// speak()      : prononce un texte (langue, urgence, débit, hauteur).
+// say()        : commentaire français standard ; urgent coupe la file.*/
+const VOICE={on:true,voice:null,voiceEn:null,last:0};
+/* ---------- FOULE SONORE ----------
+   Bruit procédural filtré + LFO lent ; boost décroissant déclenché
+   par cheer() sur les gros moments ; bouton FOULE ON/OFF.*/
+const CROWD={on:true,gain:null,master:null,boost:0,uniT:{value:0},uniB:{value:0},uniOn:{value:1}};
+function pickVoice(){
+  if(!('speechSynthesis'in window))return;
+  const v=speechSynthesis.getVoices();
+  VOICE.voice=v.find(x=>x.lang&&x.lang.toLowerCase().startsWith('fr'))||v[0]||null;
+  VOICE.voiceEn=v.find(x=>x.lang&&x.lang.toLowerCase().startsWith('en'))||null;
+}
+if('speechSynthesis'in window){pickVoice();speechSynthesis.onvoiceschanged=pickVoice;}
+const pick=a=>a[(Math.random()*a.length)|0];
+function speak(txt,{lang='fr-FR',urgent=false,rate=1.02,pitch=.95}={}){
+  if(!VOICE.on||!('speechSynthesis'in window))return;
+  const now=performance.now();
+  if(!urgent&&now-VOICE.last<1400)return;
+  VOICE.last=now;
+  try{
+    if(urgent)speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(txt);
+    u.lang=lang;
+    u.voice=lang.toLowerCase().startsWith('en')?(VOICE.voiceEn||VOICE.voice):VOICE.voice;
+    u.rate=rate;u.pitch=pitch;u.volume=.9;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function say(txt,urgent=false){speak(txt,{urgent});}
+// Construit une fois la nappe de foule : bruit brownien -> filtre passe-bande -> gains.
+function initCrowd(){
+  if(CROWD.gain||!AC)return;
+  const a=AC,len=a.sampleRate*2,buf=a.createBuffer(1,len,a.sampleRate),d=buf.getChannelData(0);
+  let l=0;
+  for(let i=0;i<len;i++){l=l*.97+(Math.random()*2-1)*.03;d[i]=l*3;}
+  const src=a.createBufferSource();src.buffer=buf;src.loop=true;
+  const f=a.createBiquadFilter();f.type='bandpass';f.frequency.value=650;f.Q.value=.5;
+  const mod=a.createGain();mod.gain.value=.3;
+  const master=a.createGain();master.gain.value=CROWD.on?1:0;
+  src.connect(f);f.connect(mod);mod.connect(master);master.connect(a.destination);src.start();
+  const lfo=a.createOscillator(),lg=a.createGain();
+  lfo.frequency.value=.11;lg.gain.value=.035;lfo.connect(lg);lg.connect(mod.gain);lfo.start();
+  CROWD.gain=mod;CROWD.master=master;
+}
+// Ovation : remonte l'excitation (0..1) ; retombe exponentiellement.
+function cheer(x){CROWD.boost=Math.max(CROWD.boost,x);}
+// Niveau sonore selon l'état du jeu (menu faible, ralenti fort) + boost des ovations.
+function updateCrowdAudio(dt){
+  const m=CROWD.master,g=CROWD.gain;
+  if(!m||!g)return;
+  m.gain.value+=((CROWD.on?1:0)-m.gain.value)*Math.min(1,dt*8);
+  if(!CROWD.on)return;
+  CROWD.boost*=Math.exp(-dt*1.6);
+  const base=S.mode==='play'?.3:S.mode==='replay'?.5:S.mode==='wait'?.38:.15;
+  const lvl=(base+CROWD.boost)*.5;
+  g.gain.value+=(lvl-g.gain.value)*Math.min(1,dt*2.5);
+}
+
+/* ---------- RENDU, SCÈNE, CAMÉRA, LUMIÈRES ---------- */
+// Rendu antialiasé avec ombres douces ; brume légère pour la profondeur ;
+// lumière hémisphérique + soleil directionnel projetant les ombres du match.*/
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x070b14);
+scene.fog=new THREE.Fog(0x070b14,42,95);
+
+const camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,200);
+camera.position.set(0,9,18);
+const camLook=new THREE.Vector3(0,1,0);
+
+scene.add(new THREE.HemisphereLight(0xaaccff,0x18202e,.85));
+const sun=new THREE.DirectionalLight(0xfff4e0,1.5);
+sun.position.set(14,22,10);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-26,right:26,top:26,bottom:-26,near:2,far:70});
+sun.shadow.camera.updateProjectionMatrix();
+scene.add(sun);
+
+// Texture du terrain peinte sur canvas (40 px = 1 m) :
+// aire de jeu bleue, ligne médiane, cercle central, zones de 6 m remplies,
+// lignes de 9 m en pointillés et traits de 7 m.
+function courtTexture(){
+  const PX=40,c=document.createElement('canvas');
+  c.width=26*PX;c.height=44*PX;
+  const g=c.getContext('2d');
+  g.fillStyle='#0d1420';g.fillRect(0,0,c.width,c.height);
+  const cx=m=>(m+13)*PX, cz=m=>(m+22)*PX;
+  g.fillStyle='#1560c9';g.fillRect(cx(-HW),cz(-HL),HW*2*PX,HL*2*PX);
+  g.strokeStyle='rgba(255,255,255,.92)';g.lineWidth=5;
+  g.strokeRect(cx(-HW),cz(-HL),HW*2*PX,HL*2*PX);
+  g.beginPath();g.moveTo(cx(-HW),cz(0));g.lineTo(cx(HW),cz(0));g.stroke();
+  g.beginPath();g.arc(cx(0),cz(0),3*PX,0,Math.PI*2);g.stroke();
+  const area=(gy,a0,a1)=>{
+    g.fillStyle='rgba(255,145,40,.30)';
+    g.beginPath();g.arc(cx(0),gy,6*PX,a0,a1);g.closePath();g.fill();
+    g.beginPath();g.arc(cx(0),gy,6*PX,a0,a1);g.stroke();
+    g.setLineDash([16,13]);
+    g.beginPath();g.arc(cx(0),gy,9*PX,a0,a1);g.stroke();
+    g.setLineDash([]);
+  };
+  area(cz(-HL),0,Math.PI);
+  area(cz(HL),Math.PI,Math.PI*2);
+  g.lineWidth=7;
+  [[cz(-13)],[cz(13)]].forEach(([ly])=>{g.beginPath();g.moveTo(cx(0)-PX*.5,ly);g.lineTo(cx(0)+PX*.5,ly);g.stroke();});
+  const t=new THREE.CanvasTexture(c);
+  t.anisotropy=8;t.colorSpace=THREE.SRGBColorSpace;
+  return t;
+}
+// Sol : plan 26 x 44 m (terrain 40 x 20 m + bandes de sécurité).
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(26,44),
+  new THREE.MeshStandardMaterial({map:courtTexture(),roughness:.85}));
+floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+
+// Filet : grille diagonale dessinée sur canvas transparent, répétée sur les panneaux.
+function netTexture(){
+  const c=document.createElement('canvas');c.width=c.height=128;
+  const g=c.getContext('2d');
+  g.clearRect(0,0,128,128);
+  g.strokeStyle='rgba(255,255,255,.75)';g.lineWidth=2;
+  for(let i=-128;i<=256;i+=16){
+    g.beginPath();g.moveTo(i,0);g.lineTo(i+128,128);g.stroke();
+    g.beginPath();g.moveTo(i+128,0);g.lineTo(i,128);g.stroke();
+  }
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;t.colorSpace=THREE.SRGBColorSpace;
+  return t;
+}
+const netMat=new THREE.MeshBasicMaterial({map:netTexture(),transparent:true,side:THREE.DoubleSide,depthWrite:false});
+function netPlane(w,h,rx,ry,x,y,z){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),netMat.clone());
+  m.material.map=netMat.map.clone();
+  m.material.map.repeat.set(w/.5,h/.5);
+  m.rotation.x=rx;m.rotation.y=ry;m.position.set(x,y,z);m.renderOrder=2;
+  return m;
+}
+const frameMat=new THREE.MeshStandardMaterial({color:0xf2f2f2,roughness:.4});
+// Une cage : montants + barre transversale (blancs) et 4 panneaux de filet.
+// Orientée vers +z ; placée sur la ligne de but (derrière la zone de 6 m).
+function buildGoal(){
+  const gr=new THREE.Group();
+  const postGeo=new THREE.CylinderGeometry(.06,.06,GOAL_H,10);
+  [-GOAL_HW,GOAL_HW].forEach(x=>{
+    const p=new THREE.Mesh(postGeo,frameMat);p.position.set(x,GOAL_H/2,0);p.castShadow=true;gr.add(p);
+  });
+  const bar=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,GOAL_HW*2+.12,10),frameMat);
+  bar.rotation.z=Math.PI/2;bar.position.set(0,GOAL_H,0);bar.castShadow=true;gr.add(bar);
+  gr.add(netPlane(GOAL_HW*2,GOAL_H,0,0,0,GOAL_H/2,-.85));
+  gr.add(netPlane(GOAL_HW*2,.9,-Math.PI/2,0,0,GOAL_H,-.45));
+  gr.add(netPlane(.9,GOAL_H,0,Math.PI/2,-GOAL_HW,GOAL_H/2,-.45));
+  gr.add(netPlane(.9,GOAL_H,0,Math.PI/2,GOAL_HW,GOAL_H/2,-.45));
+  return gr;
+}
+// Deux cages face à face, sur les lignes de but z=-20 et z=+20.
+const goalN=buildGoal();goalN.position.z=-HL;scene.add(goalN);
+const goalS=buildGoal();goalS.rotation.y=Math.PI;goalS.position.z=HL;scene.add(goalS);
+
+// Bordures basses tout autour du terrain.
+const boardMat=new THREE.MeshStandardMaterial({color:0x101828,roughness:.9});
+const sideX=HW+1.35,endZ=HL+1.35;
+[[-sideX],[sideX]].forEach(([x])=>{
+  const b=new THREE.Mesh(new THREE.BoxGeometry(.3,1,2*HL+2.4),boardMat);b.position.set(x,.5,0);scene.add(b);
+});
+[[endZ],[-endZ]].forEach(([z])=>{
+  const b=new THREE.Mesh(new THREE.BoxGeometry(2*HW+2.4,1,.3),boardMat);b.position.set(0,.5,z);scene.add(b);
+});
+// Gradins : marches superposées sur les 4 côtés (reçoivent le public).
+const standMat=new THREE.MeshStandardMaterial({color:0x141c2b,roughness:1});
+for(let i=0;i<4;i++){
+  const h=.8,y=h/2+i*h+i*.35,len=2*HL+6;
+  [[-(sideX+.65+i*1.7)],[sideX+.65+i*1.7]].forEach(([x])=>{
+    const s=new THREE.Mesh(new THREE.BoxGeometry(1.7,h,len),standMat);
+    s.position.set(x,y,0);scene.add(s);
+  });
+  const dz=endZ+.65+i*1.7,w=len*.62;
+  const n=new THREE.Mesh(new THREE.BoxGeometry(w,h,1.7),standMat);
+  n.position.set(0,y,dz);scene.add(n);
+  const s2=n.clone();s2.position.z=-dz;scene.add(s2);
+}
+
+const CROWD_SPOTS=[],VIPS=[];
+/* ---------- PUBLIC VISUEL ----------
+   ~900 spectateurs en InstancedMesh (un seul draw call) :
+   couleurs mixtes, tailles variées ; un shader ajoute l'ondulation
+   (uTime) et les sauts lors des ovations (uBoost) ; uOn coupe tout.*/
+(function buildCrowd(){
+  const geo=new THREE.CapsuleGeometry(.14,.34,4,8);
+  const mat=new THREE.MeshStandardMaterial({roughness:1});
+  const rows=[];
+  for(let s=0;s<2;s++)for(let i=0;i<4;i++)
+    rows.push({x:(s?1:-1)*(sideX+.65+i*1.7),axis:'z',top:.8+i*1.15,span:HL-1});
+  for(let s=0;s<2;s++)for(let i=0;i<4;i++)
+    rows.push({z:(s?1:-1)*(endZ+.65+i*1.7),axis:'x',top:.8+i*1.15,span:HW+2.5});
+  let count=0;
+  rows.forEach(r=>count+=Math.floor(r.span*2/.6));
+  const mesh=new THREE.InstancedMesh(geo,mat,count);
+  const phases=new Float32Array(count);
+  const dummy=new THREE.Object3D(),col=new THREE.Color();
+  const pal=[0xd23c3c,0xd23c3c,0xd23c3c,0x2f66e0,0x2f66e0,0x2f66e0,0xececec,0xececec,0x232833,0xffd23e];
+  let k=0;
+  rows.forEach(r=>{
+    const n=Math.floor(r.span*2/.6);
+    for(let j=0;j<n;j++){
+      const t=-r.span+.3+j*.6+(Math.random()-.5)*.25;
+      const jit=(Math.random()-.5)*.55;
+      const sc=.9+Math.random()*.4;
+      if(r.axis==='z')dummy.position.set(r.x+jit,r.top+.33*sc,t);
+      else dummy.position.set(t,r.top+.33*sc,r.z+jit);
+      dummy.scale.set(1,sc,1);
+      dummy.rotation.y=(Math.random()-.5)*.8;
+      dummy.updateMatrix();
+      mesh.setMatrixAt(k,dummy.matrix);
+      mesh.setColorAt(k,col.setHex(pal[(Math.random()*pal.length)|0]));
+      phases[k]=Math.random()*Math.PI*2;
+      CROWD_SPOTS.push({x:dummy.position.x,z:dummy.position.z,top:r.top});
+      k++;
+    }
+  });
+  geo.setAttribute('aPhase',new THREE.InstancedBufferAttribute(phases,1));
+  mesh.count=k;
+  mat.onBeforeCompile=sh=>{
+    sh.uniforms.uTime=CROWD.uniT;
+    sh.uniforms.uBoost=CROWD.uniB;
+    sh.uniforms.uOn=CROWD.uniOn;
+    sh.vertexShader='uniform float uTime;\nuniform float uBoost;\nuniform float uOn;\nattribute float aPhase;\n'+
+      sh.vertexShader.replace('#include <begin_vertex>',
+        '#include <begin_vertex>\ntransformed.y+=(sin(uTime*2.3+aPhase)*.5+.5)*(.10+.36*uBoost)*uOn;');
+  };
+  scene.add(mesh);
+})();
+
+(function spawnVIPS(){
+  const vm=c=>new THREE.MeshStandardMaterial({color:c,roughness:.85});
+  const S=(g,r,x,y,z,c)=>{const m=new THREE.Mesh(new THREE.SphereGeometry(r,10,8),vm(c));m.position.set(x,y,z);g.add(m);return m;};
+  const B=(g,w,h,d,x,y,z,c)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),vm(c));m.position.set(x,y,z);g.add(m);return m;};
+  const C=(g,r,l,x,y,z,c)=>{const m=new THREE.Mesh(new THREE.CapsuleGeometry(r,l,4,8),vm(c));m.position.set(x,y,z);g.add(m);return m;};
+  const RED=0xe03a2f,BLU=0x2b53d6,YEL=0xffd23e,WHT=0xf5f5f5,SKIN=0xf1c27d,BRN=0x4a2f1d,
+        SBLU=0x2456c9,TAN=0xf0c891,SRED=0xd23434,SKIN2=0xc68642,INK=0x14141c;
+
+  function makeMario(){
+    const g=new THREE.Group();
+    C(g,.11,.18,0,.21,0,BLU);
+    C(g,.12,.16,0,.44,0,RED);
+    S(g,.13,0,.63,0,SKIN);
+    S(g,.035,0,.61,.125,SKIN);
+    B(g,.1,.026,.03,0,.572,.116,BRN);
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(.135,.135,.05,12),vm(RED));
+    cap.position.set(0,.745,0);g.add(cap);
+    B(g,.17,.022,.09,0,.72,.125,RED);
+    S(g,.02,-.045,.47,.108,YEL);S(g,.02,.045,.47,.108,YEL);
+    S(g,.05,-.15,.36,.02,WHT);S(g,.05,.15,.36,.02,WHT);
+    return g;
+  }
+  function makeSonic(){
+    const g=new THREE.Group();
+    const body=S(g,.165,0,.30,0,SBLU);body.scale.set(1,1.15,1);
+    S(g,.10,0,.25,.10,TAN);
+    S(g,.15,0,.50,0,SBLU);
+    [[.56,-.13,-2.0],[.44,-.155,-2.2],[.32,-.15,-2.4]].forEach(([y,z,rx])=>{
+      const sp=new THREE.Mesh(new THREE.ConeGeometry(.06,.22,8),vm(SBLU));
+      sp.position.set(0,y,z);sp.rotation.x=rx;g.add(sp);
+    });
+    S(g,.035,-.05,.55,.112,WHT);S(g,.035,.05,.55,.112,WHT);
+    S(g,.04,-.075,.095,0,WHT);S(g,.04,.075,.095,0,WHT);
+    S(g,.055,-.075,.05,.035,SRED);S(g,.055,.075,.05,.035,SRED);
+    return g;
+  }
+  function makeLiu(){
+    const g=new THREE.Group();
+    B(g,.17,.30,.13,0,.15,0,INK);
+    C(g,.10,.20,0,.44,0,SKIN2);
+    S(g,.045,-.16,.50,0,SKIN2);S(g,.045,.16,.50,0,SKIN2);
+    S(g,.125,0,.64,0,SKIN2);
+    const hb=new THREE.Mesh(new THREE.TorusGeometry(.122,.02,6,14),vm(INK));
+    hb.rotation.x=Math.PI/2;hb.position.y=.665;g.add(hb);
+    B(g,.14,.17,.05,0,.60,-.105,INK);
+    B(g,.23,.045,.15,0,.335,0,0xc22222);
+    return g;
+  }
+
+  if(CROWD_SPOTS.length<3)return;
+  const pool=[...CROWD_SPOTS].sort(()=>Math.random()-.5);
+  const chosen=[];
+  for(const s of pool){
+    if(chosen.every(c=>Math.hypot(c.x-s.x,c.z-s.z)>5)){chosen.push(s);if(chosen.length===3)break;}
+  }
+  while(chosen.length<3)chosen.push(pool[(Math.random()*pool.length)|0]);
+  [makeMario(),makeSonic(),makeLiu()].forEach((g,i)=>{
+    const s=chosen[i];
+    g.position.set(s.x,s.top,s.z);
+    g.lookAt(0,s.top,0);
+    g.scale.setScalar(.95+Math.random()*.15);
+    scene.add(g);
+    VIPS.push({g,baseY:s.top,phase:Math.random()*6.28,mario:i===0,nextAt:null,hopT:null});
+  });
+})();
+
+/* ---------- GÉNÉRATEUR DE JOUEURS ----------
+   Squelette articulé complet :
+   - jambes à 2 segments (hanche + genou) et chaussures
+   - buste sur pivot (spine) => torsion du haut du corps
+   - bras à 3 articulations (épaule, coude, poignet) + mains
+   - tête, cheveux ; shorts contrastés ; peaux variées.
+   pantsColor != null => jogging long (utilisé par les gardiens).*/
+const SKINS=[0xf1c27d,0xdba579,0xc68642,0x8d5524];
+const HAIRS=[0x181b22,0x3a2a1a,0x6b4423,0x0f1116,0xa8824f];
+let seedC=0;
+
+function buildPlayer(jersey,shorts=0xf2f2f2,hairOverride=null,pantsColor=null){
+  const skin=SKINS[seedC%SKINS.length];
+  const hair=hairOverride!==null?hairOverride:HAIRS[(seedC*3+1)%HAIRS.length];seedC++;
+  const M=c=>new THREE.MeshStandardMaterial({color:c,roughness:.75});
+  const jM=M(jersey),shM=M(shorts),skM=M(skin),hM=M(hair),btM=M(0x14171c);
+  const gp=new THREE.Group();
+  const mk=(parent,geo,mat,x,y,z,rx=0,rz=0)=>{
+    const m=new THREE.Mesh(geo,mat);
+    m.position.set(x,y,z);m.rotation.x=rx;m.rotation.z=rz;
+    m.castShadow=true;parent.add(m);return m;
+  };
+  const legL=new THREE.Group();legL.position.set(-.12,.93,0);
+  const legR=new THREE.Group();legR.position.set(.12,.93,0);
+  gp.add(legL,legR);
+  const paM=pantsColor!==null?M(pantsColor):skM;
+  const rT=pantsColor!==null?.088:.078,rS=pantsColor!==null?.072:.062;
+  const mkLeg=g=>{
+    mk(g,new THREE.CapsuleGeometry(rT,.34,6,10),paM,0,-.22,0);
+    const kn=new THREE.Group();kn.position.y=-.44;g.add(kn);
+    mk(kn,new THREE.CapsuleGeometry(rS,.3,6,10),paM,0,-.18,0);
+    mk(kn,new THREE.BoxGeometry(.13,.08,.27),btM,0,-.385,.06);
+    return kn;
+  };
+  const kneeL=mkLeg(legL),kneeR=mkLeg(legR);
+  mk(gp,new THREE.BoxGeometry(.36,.24,.27),shM,0,.95,0);
+  const spine=new THREE.Group();spine.position.y=1.08;gp.add(spine);
+  mk(spine,new THREE.CapsuleGeometry(.165,.36,8,14),jM,0,.24,0);
+  mk(spine,new THREE.CapsuleGeometry(.07,.35,6,10),jM,0,.42,0,0,Math.PI/2);
+  mk(spine,new THREE.CylinderGeometry(.05,.055,.1,10),skM,0,.53,0);
+  const head=mk(spine,new THREE.SphereGeometry(.148,18,14),skM,0,.69,0);
+  const hr=mk(spine,new THREE.SphereGeometry(.156,18,10,0,Math.PI*2,0,Math.PI/2),hM,0,.7,0,-.25);
+  hr.scale.z=1.05;
+  const armL=new THREE.Group(),armR=new THREE.Group();
+  armL.position.set(-.3,.42,0);armR.position.set(.3,.42,0);
+  spine.add(armL,armR);
+  const mkArm=g=>{
+    mk(g,new THREE.CapsuleGeometry(.055,.3,6,10),skM,0,-.19,0);
+    const el=new THREE.Group();el.position.y=-.38;g.add(el);
+    mk(el,new THREE.CapsuleGeometry(.048,.26,6,10),skM,0,-.16,0);
+    const wr=new THREE.Group();wr.position.y=-.32;el.add(wr);
+    const hd=mk(wr,new THREE.SphereGeometry(.068,12,10),skM,0,-.04,0);
+    return {el,wr,hd};
+  };
+  const aL=mkArm(armL),aR=mkArm(armR);
+  armL.rotation.z=.25;armR.rotation.z=-.25;
+  gp.userData={mat:jM,spine,head,armL,armR,
+    elbowL:aL.el,elbowR:aR.el,wristL:aL.wr,wristR:aR.wr,handL:aL.hd,handR:aR.hd,
+    legL,legR,kneeL,kneeR,walkPhase:Math.random()*6};
+  return gp;
+}
+
+// Gants blancs agrandis du gardien de but.
+function makeKeeper(p){
+  const gm=new THREE.MeshBasicMaterial({color:0xf5f5f5});
+  [p.userData.handL,p.userData.handR].forEach(h=>{h.material=gm;h.scale.setScalar(1.5);});
+}
+
+/* ---------- LES DEUX ÉQUIPES (7 contre 7) ----------
+   Rouge (vous) : you + redEx (ailiers/arrières/pivot) + gardien vert.
+   Bleu (adverses) : foe + blueEx (mur 6-0 en défense, formation en attaque)
+   + gardien orange. myGK est VOTRE gardien quand vous défendez.*/
+const you=buildPlayer(0xd23c3c,0xf2f2f2);scene.add(you);
+const foe=buildPlayer(0x2f66e0,0x14245c);scene.add(foe);
+const redEx=[];
+for(let i=0;i<5;i++){const p=buildPlayer(0xd23c3c,0xf2f2f2);scene.add(p);redEx.push(p);}
+const blueEx=[];
+for(let i=0;i<5;i++){const p=buildPlayer(0x2f66e0,0x14245c);scene.add(p);blueEx.push(p);}
+const gk=buildPlayer(0xff7a1a,0x14171c,null,0x232a35);makeKeeper(gk);scene.add(gk);
+const myGK=buildPlayer(0x22cc55,0x14171c,null,0x1d2f26);makeKeeper(myGK);scene.add(myGK);
+S.active=you;
+let strikerM=foe,axPrev=you.position.x,azPrev=you.position.z,fPrevX=foe.position.x,fPrevZ=foe.position.z,foeStun=0;
+const foeBite=new THREE.Vector3();
+const ALLP=[you,...redEx,foe,...blueEx,gk,myGK];
+const REF={on:true,armT:0};
+const zoro=buildPlayer(0x17181d,0x0e1013,0x2f8f4f);
+zoro.position.set(2.7,0,-5.8);
+scene.add(zoro);
+(function dressZoro(){
+  const vm=c=>new THREE.MeshStandardMaterial({color:c,roughness:.85});
+  const ceinture=new THREE.Mesh(new THREE.BoxGeometry(.4,.09,.31),vm(0x0b0b0e));
+  ceinture.position.y=.98;zoro.add(ceinture);
+  const masque=new THREE.Mesh(new THREE.BoxGeometry(.27,.062,.05),vm(0x0b0b0e));
+  masque.position.set(0,.005,.128);
+  zoro.userData.head.add(masque);
+  const mstL=new THREE.Mesh(new THREE.BoxGeometry(.06,.022,.02),vm(0x14141c));
+  mstL.position.set(-.038,-.052,.124);mstL.rotation.z=.24;
+  zoro.userData.head.add(mstL);
+  const mstR=new THREE.Mesh(new THREE.BoxGeometry(.06,.022,.02),vm(0x14141c));
+  mstR.position.set(.038,-.052,.124);mstR.rotation.z=-.24;
+  zoro.userData.head.add(mstR);
+  const bord=new THREE.Mesh(new THREE.CylinderGeometry(.245,.245,.018,16),vm(0x0b0b0e));
+  bord.position.y=.155;
+  const calotte=new THREE.Mesh(new THREE.CylinderGeometry(.125,.145,.11,14),vm(0x0b0b0e));
+  calotte.position.y=.21;
+  const chapeau=new THREE.Group();
+  chapeau.add(bord);chapeau.add(calotte);
+  chapeau.rotation.z=-.06;
+  zoro.userData.head.add(chapeau);
+  const cape=new THREE.Mesh(new THREE.PlaneGeometry(.66,.9),
+    new THREE.MeshStandardMaterial({color:0x0b0b0e,roughness:.95,side:THREE.DoubleSide}));
+  cape.position.set(0,.02,-.19);
+  cape.rotation.x=.12;
+  zoro.userData.spine.add(cape);
+  const pivot=new THREE.Group();
+  pivot.position.set(-.2,.92,.06);
+  pivot.rotation.z=.42;
+  const gr=new THREE.Mesh(new THREE.BoxGeometry(.034,.14,.022),vm(0x14141c));gr.position.y=-.05;
+  const guard=new THREE.Mesh(new THREE.BoxGeometry(.1,.02,.034),vm(0x22262e));guard.position.y=-.13;
+  const bl=new THREE.Mesh(new THREE.BoxGeometry(.03,.6,.016),
+    new THREE.MeshStandardMaterial({color:0xdfe3e8,roughness:.3}));
+  bl.position.y=-.44;
+  pivot.add(gr);pivot.add(guard);pivot.add(bl);zoro.add(pivot);
+})();
+function zw(d,v){tone(2320,2250,d,'triangle',v);}
+function zoroWhistle(kind){
+  if(kind==='goal'){zw(0,.1);zw(.14,.24);}
+  else if(kind==='period'){zw(0,.1);zw(.16,.32);}
+  else{zw(0,.1);zw(.15,.1);zw(.28,.55);}
+}
+function refArm(){REF.armT=1;}
+function updateReferee(dt){
+  if(!REF.on){zoro.visible=false;return;}
+  zoro.visible=true;
+  const baseZ=S.phase==='defense'?HL-14.2:-HL+14.2;
+  const tx=BV.pos.x>=0?2.7:-2.7;
+  const tz=baseZ+THREE.MathUtils.clamp(BV.pos.z*.1,-1.5,1.5);
+  const px=zoro.position.x,pz=zoro.position.z;
+  zoro.position.x+=(tx-zoro.position.x)*Math.min(1,3*dt);
+  zoro.position.z+=(tz-zoro.position.z)*Math.min(1,3*dt);
+  const mdx=BV.pos.x*.5-zoro.position.x,mdz=BV.pos.z*.5-zoro.position.z;
+  if(Math.hypot(mdx,mdz)>.3)zoro.rotation.y=Math.atan2(mdx,mdz);
+  const spd=Math.min(6,Math.hypot(zoro.position.x-px,zoro.position.z-pz)/Math.max(dt,1e-4));
+  humanUpdate(zoro,dt,spd,.55);
+  if(REF.armT>0){
+    REF.armT-=dt;
+    zoro.userData.armR.rotation.z=-3.05;
+    zoro.userData.elbowR.rotation.x*= .9;
+  }else relaxPose(zoro,10*dt);
+}
+
+/* ---------- FORMATIONS & RÈGLES DE PASSE ----------
+   THETAS  : angles des 6 défenseurs du mur 6-0 sur l'arc des 6 m.
+   PASS_OK : postes autorisés à se passer la balle (proximité <= 9 m).
+   strongSide : main forte — gauche pour ailier/arrière droits, sinon droite.*/
+const THETAS=[-1.361,-.820,-.279,.279,.820,1.361];
+const statics=[],wallB=[],wallD=[];
+let foeSlot={x:0,z:0};
+
+// Place un joueur et applique une pose de bras :
+// out = bras levés (mur), up = gardien prêt, rest = le long du corps, relax = souple.
+function place(p,x,z,ry,arms){
+  p.position.set(x,0,z);p.rotation.set(0,ry,0);
+  if(arms==='out'){p.userData.armL.rotation.z=1.15;p.userData.armR.rotation.z=-1.15;}
+  else if(arms==='up'){p.userData.armL.rotation.z=2.3;p.userData.armR.rotation.z=-2.3;}
+  else if(arms==='rest'){p.userData.armL.rotation.z=.06;p.userData.armR.rotation.z=-.06;p.userData.armL.rotation.x=0;p.userData.armR.rotation.x=0;}
+  else{p.userData.armL.rotation.z=.25;p.userData.armR.rotation.z=-.25;}
+}
+
+const RED_F=[[-8.6,-14.2,'LW'],[-5.2,-9.8,'LB'],[5.2,-9.8,'RB'],[8.6,-14.2,'RW'],[0,-13.85,'PIV']];
+const BLUE_F=[[8.6,14.2,'RW'],[5.2,9.8,'LB'],[-5.2,9.8,'RB'],[-8.6,14.2,'LW'],[0,13.85,'PIV']];
+const PASS_OK={LW:['LB'],LB:['LW','CB','PIV'],RW:['RB'],RB:['RW','CB','PIV'],CB:['LB','RB','PIV'],PIV:['LW','LB','CB','RB']};
+function strongSide(role){return(role==='RW'||role==='RB')?1:-1;}
+
+// Dispose toutes les équipes selon la phase :
+// attaque  => rouges en formation (ailiers, arrières, pivot), bleus en mur 6-0
+// défense  => bleus en formation offensive, rouges en mur 6-0 (vous y êtes).
+function layoutTeams(phase){
+  statics.length=0;wallB.length=0;wallD.length=0;
+  if(phase==='attack'){
+    redEx.forEach((p,i)=>{place(p,RED_F[i][0],RED_F[i][1],Math.PI,'relax');p.userData.role=RED_F[i][2];statics.push(p);});
+    you.userData.role='CB';
+    place(myGK,0,19.5,Math.PI,'relax');statics.push(myGK);
+    const th=THETAS.filter(t=>t!==.279);
+    blueEx.forEach((p,i)=>{
+      const a=th[i],x=6*Math.sin(a),z=-20+6*Math.cos(a);
+      place(p,x,z,0,'rest');statics.push(p);wallB.push(p);
+    });
+    foeSlot={x:6*Math.sin(.279),z:-20+6*Math.cos(.279)};
+    place(gk,0,-19.5,0,'up');
+  }else{
+    blueEx.forEach((p,i)=>{place(p,BLUE_F[i][0],BLUE_F[i][1],0,'relax');p.userData.role=BLUE_F[i][2];statics.push(p);});
+    const th=THETAS.filter(t=>t!==.279);
+    redEx.forEach((p,i)=>{
+      const a=th[i],x=6*Math.sin(a),z=20-6*Math.cos(a);
+      place(p,x,z,0,'rest');statics.push(p);wallD.push(p);
+    });
+    place(you,6*Math.sin(.279),20-6*Math.cos(.279),0,'rest');
+    statics.push(you);wallD.push(you);
+    foeSlot={x:0,z:0};
+    place(gk,0,-19.5,0,'up');statics.push(gk);
+  }
+}
+
+/* ---------- ANIMATION DES PERSONNAGES ---------- */
+// rotYv : rotation 2D autour de Y (utilisée par la roulette).*/
+function rotYv(x,z,a){const c=Math.cos(a),s=Math.sin(a);return[x*c+z*s,-x*s+z*c];}
+function rotTo(o,x,z,k){o.rotation.x+=(x-o.rotation.x)*k;o.rotation.z+=(z-o.rotation.z)*k;}
+// Cycle de marche/course : hanches, genoux fléchis, contre-balancement des bras.
+function humanUpdate(p,dt,speed,stride=1){
+  const u=p.userData;
+  u.walkPhase+=dt*(3.2+speed*1.6);
+  const w=u.walkPhase,amp=Math.min(.66,.08+speed*.075)*stride;
+  u.legL.rotation.x=Math.sin(w)*amp;
+  u.legR.rotation.x=Math.sin(w+Math.PI)*amp;
+  u.kneeL.rotation.x=-Math.max(0,Math.sin(w+2.3))*amp;
+  u.kneeR.rotation.x=-Math.max(0,Math.sin(w+Math.PI+2.3))*amp;
+  const sw=Math.sin(w+Math.PI)*amp*.55;
+  u.armL.rotation.x=sw;u.armR.rotation.x=-sw;
+}
+function windupPose(p,k){
+  const u=p.userData,f=.35;
+  u.spine.rotation.y+=(-.85*k-u.spine.rotation.y)*f;
+  u.armR.rotation.z+=(-.25-1.8*k-u.armR.rotation.z)*f;
+  u.armR.rotation.x+=(.75*k-u.armR.rotation.x)*f;
+  u.elbowR.rotation.x+=(-1.7*k-u.elbowR.rotation.x)*f;
+  u.wristR.rotation.x+=(-.45*k-u.wristR.rotation.x)*f;
+  u.armL.rotation.z+=(-.25-.5*k-u.armL.rotation.z)*f;
+}
+function throwPose(p,t01){
+  const u=p.userData;let sp,az,ax,ex,wx;
+  if(t01<.45){const q=t01/.45;
+    sp=-.85*q;az=-.25-1.8*q;ax=.75*q;ex=-1.7*q;wx=-.45*q;
+  }else if(t01<.68){const q=(t01-.45)/.23,e=1-Math.pow(1-q,2);
+    sp=-.85+1.35*e;az=-2.05+.6*e;ax=.75-1.8*e;ex=-1.7+1.6*e;wx=-.45+1.35*e;
+  }else{const q=(t01-.68)/.32;
+    sp=.5*(1-q);az=-1.45+1.2*q;ax=-1.05*(1-q);ex=-.1+.1*q;wx=.9*(1-q);
+  }
+  const f=.55;
+  u.spine.rotation.y+=(sp-u.spine.rotation.y)*f;
+  u.armR.rotation.z+=(az-u.armR.rotation.z)*f;
+  u.armR.rotation.x+=(ax-u.armR.rotation.x)*f;
+  u.elbowR.rotation.x+=(ex-u.elbowR.rotation.x)*f;
+  u.wristR.rotation.x+=(wx-u.wristR.rotation.x)*f;
+}
+// Retour progressif vers la posture neutre (après un tir ou une charge).
+function relaxPose(p,k){
+  const u=p.userData,f=Math.min(1,k);
+  rotTo(u.spine,0,0,f);
+  u.armR.rotation.z+=(-.25-u.armR.rotation.z)*f;
+  u.armL.rotation.z+=(.25-u.armL.rotation.z)*f;
+  rotTo(u.elbowR,0,0,f);rotTo(u.elbowL,0,0,f);
+  rotTo(u.wristR,0,0,f);rotTo(u.wristL,0,0,f);
+}
+function armChain(u,s){return s>0?{a:u.armR,e:u.elbowR,w:u.wristR,o:u.armL}:{a:u.armL,e:u.elbowL,w:u.wristL,o:u.armR};}
+// Armement du tir (pendant la charge) : buste vrillé, épaule tirée en arrière,
+// coude cassé, poignet fermé — s = côté fort (-1 droite, +1 gauche).
+function windupSide(p,k,s){
+  const u=p.userData,ch=armChain(u,s),m=s>0?-1:1,f=.35;
+  u.spine.rotation.y+=(-.85*k*m-u.spine.rotation.y)*f;
+  ch.a.rotation.z+=((-0.25-1.8*k)*m-ch.a.rotation.z)*f;
+  ch.a.rotation.x+=(.75*k-ch.a.rotation.x)*f;
+  ch.e.rotation.x+=(-1.7*k-ch.e.rotation.x)*f;
+  ch.w.rotation.x+=(-.45*k-ch.w.rotation.x)*f;
+  const oz=s>0?-1:1;
+  ch.o.rotation.z+=((.25+.5*k)*oz-ch.o.rotation.z)*f;
+}
+// Geste de tir en 3 temps : armé (45 %) -> fouetté épaule/coude (23 %)
+// -> coup de poignet et retour (32 %). Le ballon part au moment du fouetté.
+function throwSide(p,t01,s){
+  const u=p.userData,ch=armChain(u,s),m=s>0?-1:1;let sp,az,ax,ex,wx;
+  if(t01<.45){const q=t01/.45;
+    sp=-.85*q;az=-.25-1.8*q;ax=.75*q;ex=-1.7*q;wx=-.45*q;
+  }else if(t01<.68){const q=(t01-.45)/.23,e=1-Math.pow(1-q,2);
+    sp=-.85+1.35*e;az=-2.05+.6*e;ax=.75-1.8*e;ex=-1.7+1.6*e;wx=-.45+1.35*e;
+  }else{const q=(t01-.68)/.32;
+    sp=.5*(1-q);az=-1.45+1.2*q;ax=-1.05*(1-q);ex=-.1+.1*q;wx=.9*(1-q);
+  }
+  sp*=m;az*=m;
+  const f=.55;
+  u.spine.rotation.y+=(sp-u.spine.rotation.y)*f;
+  ch.a.rotation.z+=(az-ch.a.rotation.z)*f;
+  ch.a.rotation.x+=(ax-ch.a.rotation.x)*f;
+  ch.e.rotation.x+=(ex-ch.e.rotation.x)*f;
+  ch.w.rotation.x+=(wx-ch.w.rotation.x)*f;
+}
+// Marquage individuel : t=0 bras le long du corps, t=1 bras en U au-dessus de la tête.
+function setMarkPose(p,t){
+  const u=p.userData,m=Math.min(1,t),z=.06+2.64*m;
+  u.armL.rotation.z=z;u.armR.rotation.z=-z;
+  u.armL.rotation.x=-.22*m;u.armR.rotation.x=-.22*m;
+  u.elbowL.rotation.x=-.5*m;u.elbowR.rotation.x=-.5*m;
+  u.elbowL.rotation.z=.35*m;u.elbowR.rotation.z=-.35*m;
+  u.wristL.rotation.x=-.3*m;u.wristR.rotation.x=-.3*m;
+}
+// Posture étoile du gardien : bras grand écartés, jambe opposée au ballon levée,
+// buste basculé. m = intensité (0..1), ld = côté LOCAL du ballon (+1/-1).
+function starApply(u,m,ld){
+  u.armL.rotation.z=-(.25+2.45*m);
+  u.armR.rotation.z=.25+2.45*m;
+  u.elbowL.rotation.x*=1-m;u.elbowR.rotation.x*=1-m;
+  u.wristL.rotation.x=-.25*m;u.wristR.rotation.x=-.25*m;
+  u.spine.rotation.z=.22*m*ld;
+  if(ld>0){u.legL.rotation.z=-1.08*m;u.kneeL.rotation.x=-.4*m;}
+  else{u.legR.rotation.z=1.08*m;u.kneeR.rotation.x=-.4*m;}
+}
+// Chaque défenseur repère l'attaquant le plus proche ; si c'est le porteur,
+// il lève les bras en U, sinon il garde les bras le long du corps (transitions douces).
+function updateMarks(dt){
+  let carrier=null,attList,defList;
+  if(S.phase==='attack'){carrier=holder==='you'?S.active:null;attList=[S.active,...redEx];defList=[...wallB,foe];}
+  else{carrier=holder==='stk'?strikerM:null;attList=[strikerM,...blueEx];defList=wallD;}
+  for(const w of defList){
+    if(w===myGK||w===carrier)continue;
+    let best=null,bd=1e9;
+    for(const a of attList){
+      if(a===w)continue;
+      const dd=(a.position.x-w.position.x)**2+(a.position.z-w.position.z)**2;
+      if(dd<bd){bd=dd;best=a;}
+    }
+    const want=(best!==null&&best===carrier)?1:0;
+    w.userData.markT=w.userData.markT??0;
+    w.userData.markT+=(want-w.userData.markT)*Math.min(1,8*dt);
+    setMarkPose(w,w.userData.markT);
+  }
+}
+// Vrai si un adversaire occupe le secteur frontal à moins de 4 m :
+// avancer est alors interdit (passer, tirer ou partir sur un duel).
+function pressured(p){
+  const gl=Math.hypot(p.x,p.z+HL)||1;
+  const fx=p.x/gl,fz=(p.z+HL)/gl;
+  const opps=S.phase==='attack'?[...wallB,foe]:[...wallD];
+  for(const o of opps){
+    const dx=o.position.x-p.x,dz=o.position.z-p.z,d=Math.hypot(dx,dz);
+    if(d<4&&(dx*fx+dz*fz)/Math.max(d,.01)>-.15)return true;
+  }
+  return false;
+}
+// Convertit un décalage local (main forte) en coordonnées monde.
+function holdOffset(yaw,lx,lz){
+  const c=Math.cos(yaw),s=Math.sin(yaw);
+  return[lx*c+lz*s,-lx*s+lz*c];
+}
+
+/* ---------- BALLON ---------- */
+// BV.pos/BV.vel = vérité physique ; holder = 'you'|'stk'|null (qui porte).*/
+const ball=new THREE.Mesh(new THREE.SphereGeometry(BALL_R,20,16),
+  new THREE.MeshStandardMaterial({color:0xf5f5f0,roughness:.5}));
+ball.castShadow=true;scene.add(ball);
+const BV={pos:new THREE.Vector3(0,1,0),vel:new THREE.Vector3()};
+let holder='you';
+
+const aimRing=new THREE.Mesh(new THREE.RingGeometry(.14,.21,24),
+  new THREE.MeshBasicMaterial({color:0xffdd33,side:THREE.DoubleSide,depthTest:false,transparent:true,opacity:.9}));
+aimRing.renderOrder=5;aimRing.visible=false;scene.add(aimRing);
+
+// Anneau doré sous le joueur contrôlé ; anneau bleu = coéquipier visé pour une passe.
+const selRing=new THREE.Mesh(new THREE.RingGeometry(.44,.52,28),
+  new THREE.MeshBasicMaterial({color:0xffd23e,transparent:true,opacity:.85,side:THREE.DoubleSide}));
+selRing.rotation.x=-Math.PI/2;selRing.visible=false;scene.add(selRing);
+
+const mateRing=new THREE.Mesh(new THREE.RingGeometry(.5,.58,28),
+  new THREE.MeshBasicMaterial({color:0x9fe8ff,transparent:true,opacity:.9,side:THREE.DoubleSide}));
+mateRing.rotation.x=-Math.PI/2;mateRing.visible=false;scene.add(mateRing);
+
+// Visée : projette le curseur souris sur le plan du but concerné.
+const raycaster=new THREE.Raycaster();
+const planeA=new THREE.Plane(new THREE.Vector3(0,0,1),HL);
+const planeB=new THREE.Plane(new THREE.Vector3(0,0,1),-HL);
+const tmpV=new THREE.Vector3();
+
+function computeAim(plane,out,clampX,clampY){
+  raycaster.setFromCamera(S.ndc,camera);
+  const hit=raycaster.ray.intersectPlane(plane,tmpV);
+  if(hit)out.copy(tmpV);
+  out.x=THREE.MathUtils.clamp(out.x,-clampX,clampX);
+  out.y=THREE.MathUtils.clamp(out.y,.15,clampY);
+}
+
+addEventListener('pointermove',e=>{
+  S.ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+  if(S.mode==='play'&&S.phase==='defense'&&!S.dive.active){
+    computeAim(planeB,S.aimD,2.6,2.2);
+    S.gkTX=S.aimD.x;
+  }
+});
+addEventListener('contextmenu',e=>e.preventDefault());
+/* ---------- ENTRÉES ----------
+   Souris   : viser / maintenir pour charger un tir (gauche),
+              passe directe (droit) / plongeon en défense.
+   Clavier  : ZQSD-WASD-flèches, E = passe, Maj = feinte 3 appuis,
+              R = roulette, Espace = tir chargé ou plongeon.*/
+addEventListener('pointerdown',e=>{
+  if(e.target.closest('button'))return;
+  audio();
+  if(e.button===2){tryPass();return;}
+  if(S.mode!=='play'||S.outcome)return;
+  if(S.phase==='attack'&&holder==='you'&&!S.duel&&!S.susp){S.charging=true;S.chargeT=0;}
+  else if(S.phase==='defense')tryDive();
+});
+addEventListener('pointerup',()=>{
+  if(S.mode==='play'&&S.charging&&S.phase==='attack'&&holder==='you'&&!S.outcome&&!S.susp)shoot();
+  S.charging=false;
+});
+const keys={};
+addEventListener('keydown',e=>{
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+  keys[e.code]=true;
+  if(e.repeat)return;
+  audio();
+  if(e.code==='Space'){
+    if(S.mode!=='play'||S.outcome)return;
+    if(S.phase==='attack'&&holder==='you'&&!S.duel&&!S.susp){S.charging=true;S.chargeT=0;}
+    else if(S.phase==='defense')tryDive();
+  }
+  else if(e.code==='KeyE')tryPass();
+  else if(e.code==='ShiftLeft'||e.code==='ShiftRight')tryJuke();
+  else if(e.code==='KeyR')trySpin();
+});
+addEventListener('keyup',e=>{
+  keys[e.code]=false;
+  if(e.code==='Space'){
+    if(S.mode==='play'&&S.charging&&S.phase==='attack'&&holder==='you'&&!S.outcome)shoot();
+    S.charging=false;
+  }
+});
+
+// Conditions pour agir avec le ballon (ni suspension ni duel en cours).
+function canAct(){
+  return S.mode==='play'&&S.phase==='attack'&&!S.outcome&&
+    holder==='you'&&!S.duel&&!S.charging&&!S.susp;
+}
+// Meilleur destinataire de passe : éligible selon la matrice des postes,
+// à moins de 9 m, et le plus proche du rayon de visée du curseur.
+function bestPassTarget(){
+  const me=S.active,r=me.userData.role||'CB';
+  const ok=PASS_OK[r]||[];
+  computeAim(planeA,S.aim,6,3.4);
+  const adx=S.aim.x-me.position.x,adz=S.aim.z-me.position.z;
+  const al=Math.hypot(adx,adz)||1;
+  let best=null,bs=1e9;
+  for(const m of redEx){
+    if(!ok.includes(m.userData.role))continue;
+    const dx=m.position.x-me.position.x,dz=m.position.z-me.position.z;
+    const len=Math.hypot(dx,dz);
+    if(len<2||len>9)continue;
+    const t=(dx*adx+dz*adz)/al;
+    const perp=t>0?Math.hypot(dx-adx/al*t,dz-adz/al*t):Math.hypot(dx,dz);
+    const sc=perp+len*.06;
+    if(sc<bs){bs=sc;best=m;}
+  }
+  return best;
+}
+// Passe (E / clic droit) : trajectoire tendue vers le coéquipier visé ;
+// le contrôle bascule immédiatement sur le receveur.
+function tryPass(){
+  if(!canAct()||S.passCd>0)return;
+  const best=bestPassTarget();
+  if(!best){tone(200,150,.08,'square',.12);return;}
+  const from=BV.pos.clone(),to=new THREE.Vector3(best.position.x,1.25,best.position.z);
+  const d=to.sub(from),T=d.length()/16;
+  d.normalize().multiplyScalar(16);d.y+=.5*GRAV*T*.8;
+  BV.vel.copy(d);
+  holder=null;S.passTo=best;S.passCd=.5;S.shotFrom.copy(from);
+  S.animThrow={mesh:S.active,side:strongSide(S.activeRole),t:0,dur:.26};
+  sfx.shot();
+}
+// Le défenseur qui presse se fixe sur votre position d'avant-geste
+// (feintes et roulettes le font partir du mauvais côté).
+function bite(){
+  foeStun=.55;foeBite.set(S.active.position.x,0,S.active.position.z);
+}
+function canDuel(){
+  return canAct()&&S.duelCd<=0;
+}
+// Feinte latérale en 3 appuis (Maj) : impulsion sur le côté choisi,
+// le défenseur est momentanément piégé.
+function tryJuke(){
+  if(!canDuel())return;
+  const gp=tmpV.set(0,0,-HL).sub(S.active.position);gp.y=0;gp.normalize();
+  const lat=new THREE.Vector3(gp.z,0,-gp.x);
+  const ix=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+  const dir=ix!==0?-ix:(S.jukeSign*=-1);
+  lat.multiplyScalar(dir);
+  S.duel={type:'juke',t:0,dur:.48,lat,fw:gp.clone()};
+  S.specialUntil=elapsed+2;S.duelCd=.75;
+  tone(700,240,.14,'sine',.14);
+  if(Math.random()<.25)say(pick(['Changement de direction !','Il croise !','Feinte latérale !']));
+  bite();
+}
+// Roulette (R) : rotation horaire complète autour d'un axe vertical
+// décentré à gauche (pour un droitier), puis accélération vers l'avant.
+function trySpin(){
+  if(!canDuel())return;
+  const gp=tmpV.set(0,0,-HL).sub(S.active.position);gp.y=0;gp.normalize();
+  const L=new THREE.Vector3(gp.z,0,-gp.x);
+  const off=L.multiplyScalar(.19);
+  const pivot=S.active.position.clone().add(off);
+  S.duel={type:'spin',t:0,dur:.8,pivot,off,yaw0:S.active.rotation.y,gp:gp.clone(),burst:false};
+  S.specialUntil=elapsed+3;S.duelCd=.85;
+  tone(520,180,.22,'sine',.15);
+  if(Math.random()<.35)say(pick(['La roulette !','Roulette, tourne tourne !','Il pivote sur lui-même !']));
+  bite();
+}
+
+// setTimeout annulable (invalidé si on retourne au menu).
+function later(ms,fn){const id=S.runId;setTimeout(()=>{if(id===S.runId)fn()},ms);}
+
+let msgTO=null;
+// Affiche brièvement un grand message central (BUT !, ARRÊT !…).
+function showMsg(m,sub='',dur=1.4){
+  ui.msg.textContent=m;ui.sub.textContent=sub;
+  ui.msgWrap.classList.remove('show');void ui.msgWrap.offsetWidth;
+  ui.msgWrap.classList.add('show');
+  clearTimeout(msgTO);msgTO=setTimeout(()=>ui.msgWrap.classList.remove('show'),dur*1000);
+}
+function hud(){
+  ui.goals.textContent=S.stats.goals;
+  ui.saves.textContent=S.stats.saves;
+  ui.timer.textContent=Math.max(0,Math.ceil(S.timer));
+}
+
+// Enregistre le résultat de l'action et programme la remise en jeu.
+function setOutcome(o){S.outcome=o;S.outcomeT=1.5;}
+
+const SUSP_BAG=[];
+function nextSusp(){
+  if(!SUSP_BAG.length){
+    for(let i=0;i<20;i++)SUSP_BAG.push(i<18);
+    for(let i=SUSP_BAG.length-1;i>0;i--){
+      const j=(Math.random()*(i+1))|0;
+      [SUSP_BAG[i],SUSP_BAG[j]]=[SUSP_BAG[j],SUSP_BAG[i]];
+    }
+  }
+  return SUSP_BAG.pop();
+}
+/* ---------- TIR ----------
+   Sac mélangé de 20 balles : EXACTEMENT 18 suspensions + 2 tirs appuyés.
+   Suspension : saut, balle conservée dans la main, relâchement au coup
+   de poignet (55 % de l'animation). Appui : tir instantané au sol.*/
+function shoot(){
+  const p=.2+.8*Math.min(1,S.chargeT/.65);
+  const start=BV.pos.clone();
+  const side=strongSide(S.activeRole);
+  if(nextSusp()){
+    S.susp={t:0,dur:.58,p,side,mesh:S.active};
+    S.animThrow=null;
+    return;
+  }
+  finishShot(p,start,side);
+}
+// Expulse réellement le ballon depuis la main vers le point visé
+// (compensation de gravité pour atteindre la cible) + statistiques + son.
+function finishShot(p,start,side){
+  const tgt=S.aim.clone();
+  const d=tgt.sub(start);
+  const T=d.length()/(10+p*16);
+  const vel=d.normalize().multiplyScalar(10+p*16);
+  vel.y+=.5*GRAV*T;
+  BV.vel.copy(vel);
+  S.shotFrom.copy(start);
+  S.lastShotDist=start.distanceTo(new THREE.Vector3(S.aim.x,S.aim.y,-HL));
+  S.lastShotPow=p;
+  if(Math.hypot(start.x,start.z+HL)<7)S.jumpT=0;
+  S.animThrow={mesh:S.active,side,t:0,dur:.34};
+  holder=null;
+  S.stats.shots++;
+  sfx.shot();
+  armKeeper(start,BV.vel);
+}
+
+// Le gardien IA lit la trajectoire (avec erreur, bruit et temps de réaction)
+// puis part vers le point d'impact estimé.
+function armKeeper(p0,v0){
+  const K=S.keeper;
+  if(v0.z>=-0.1)return;
+  const T=(-19.25-p0.z)/v0.z;
+  if(T<=0)return;
+  const rawX=THREE.MathUtils.clamp(p0.x+v0.x*T,-1.7,1.7);
+  const rawY=THREE.MathUtils.clamp(p0.y+v0.y*T-.5*GRAV*T*T,.2,1.9);
+  K.err=.55+Math.random()*.45;
+  K.noise=(Math.random()*2-1)*.6;
+  K.predX=THREE.MathUtils.clamp(rawX*K.err+K.noise,-1.75,1.75);
+  K.predY=rawY;
+  K.react=.15+Math.random()*.17;
+  K.state='react';
+  K.jumped=false;K.dived=false;K.jumpT=-1;K.diveT=-1;
+  K.diveDir=Math.sign(K.predX-K.x)||1;
+}
+
+/* ---------- PHYSIQUE DU BALLON LIBRE ----------
+   Gravité, rebonds sol/bordures, amorti dans les filets en cas de but,
+   fenêtres d'arrêt (gardien IA / votre gardien), interceptions du mur
+   ou du presser, puis classement : but / poteau / dehors.*/
+function integrateBall(dt){
+  const pz=BV.pos.z;
+  BV.vel.y-=GRAV*dt;
+  BV.pos.addScaledVector(BV.vel,dt);
+  if(BV.pos.y<BALL_R){
+    BV.pos.y=BALL_R;
+    BV.vel.y=Math.abs(BV.vel.y)<1.4?0:-BV.vel.y*.5;
+    BV.vel.x*=.93;BV.vel.z*=.93;
+  }
+  if(BV.pos.y<=BALL_R+.001){
+    const f=Math.pow(.3,dt);
+    BV.vel.x*=f;BV.vel.z*=f;
+  }
+  if(Math.abs(BV.pos.x)>HW+1.05){
+    BV.pos.x=Math.sign(BV.pos.x)*(HW+1.05);
+    BV.vel.x*=-.6;
+  }
+  if(S.outcome!=='goal'&&Math.abs(BV.pos.z)>HL+1){
+    BV.pos.z=Math.sign(BV.pos.z)*(HL+1);
+    BV.vel.z*=-.6;
+  }
+  if(S.outcome==='goal'&&Math.abs(BV.pos.z)>HL){
+    BV.vel.multiplyScalar(Math.max(0,1-10*dt));
+    BV.pos.z=THREE.MathUtils.clamp(BV.pos.z,-HL-.8,HL+.8);
+  }
+  if(S.phase==='attack'){
+    if(!S.outcome&&BV.vel.z<0&&pz>-19.25&&BV.pos.z<=-19.25)keeperSaveCheck();
+    if(!S.outcome&&pz>-HL&&BV.pos.z<=-HL)crossPlane(-1);
+    if(!S.outcome&&holder===null&&BV.pos.z>-18&&BV.pos.y<1.6){
+      const dc=tmpV.set(foe.position.x,foe.position.y+1,foe.position.z).distanceTo(BV.pos);
+      if(dc<.45){
+        setOutcome('block');
+        sfx.block();
+        showMsg(S.passTo?'INTERCEPTION !':'CONTRE !',S.passTo?'La passe est coupée':'Le défenseur bloque le tir');
+        say(pick(['Tir contré','Le tir est bloqué','La défense se jette !']));
+        cheer(.4);
+        if(S.passTo)S.passTo=null;
+        BV.vel.set((BV.pos.x-foe.position.x)*4,3,6);
+      }
+    }
+  }else{
+    if(!S.outcome&&BV.vel.z>0&&pz<19.25&&BV.pos.z>=19.25)userSaveCheck();
+    if(!S.outcome&&pz<HL&&BV.pos.z>=HL)crossPlane(1);
+  }
+  if(!S.outcome&&holder===null&&BV.pos.distanceTo(S.shotFrom)>1){
+    const walls=S.phase==='attack'?wallB:wallD;
+    for(const w of walls){
+      const wx=BV.pos.x-w.position.x,wz=BV.pos.z-w.position.z;
+      if(wx*wx+wz*wz<.18&&BV.pos.y<1.7){
+        setOutcome('block');sfx.block();
+        showMsg(S.passTo||S.aiPassTo?'INTERCEPTION !':'CONTRE !','Le mur défensif dit non');
+        say(pick(['Le mur dévie le tir','Interception dans la ligne de passe','Le mur dit non !','Bien lu par la défense']));
+        cheer(.4);
+        S.passTo=null;S.aiPassTo=null;
+        BV.vel.z*=-.35;BV.vel.x*=.4;BV.vel.y=Math.max(BV.vel.y*.3,1.2);
+        break;
+      }
+    }
+  }
+}
+
+// Classement au franchissement de la ligne de but :
+// but (avec ralenti si belle réalisation), poteau, ou sortie.
+function crossPlane(s){
+  const x=BV.pos.x,y=BV.pos.y;
+  if(Math.abs(x)<GOAL_HW-.06&&y<GOAL_H-.06){
+    setOutcome('goal');
+    if(S.phase==='attack'){
+      S.stats.goals++;sfx.goal();
+      const corner=Math.abs(x)>1&&(y<.7||y>1.45);
+      const nice=S.lastShotDist>10||corner||elapsed<S.specialUntil;
+      const flair=nice?['Quelle réalisation !','Somptueux !','De la grande classe !'][Math.floor(Math.random()*3)]:'Ça fait mouche !';
+      showMsg('BUUUUT !',flair);
+      cheer(1);
+      if(REF.on){zoroWhistle('goal');refArm();}
+      say(nice?pick([
+        'Buuut ! Quelle réalisation !',
+        'Oh ! Somptueux, quel but !',
+        'Il marque d\'une frappe chirurgicale !',
+        'Buuut ! La classe internationale !',
+        'Quel geste ! Le gardien n\'a rien pu faire !'
+      ]):pick([
+        'Buuut !',
+        'Et c\'est au fond des filets !',
+        'Buuut ! Ça fait mouche !',
+        'Il n\'arrête pas de marquer !'
+      ]),true);
+      if(nice||Math.random()<.3){S.pendingReplay=true;S.replayDelay=.55;S.outcomeT=99;}
+    }
+    else{sfx.concede();showMsg('BUT ENCAISSÉ…','Reste concentré !');say(pick(['But encaissé…','Il marque… il faut réagir','Aïe, ça fait mal','Restez solides au but !']),true);cheer(.8);if(REF.on){zoroWhistle('goal');refArm();}}
+  }else if(Math.abs(x)<GOAL_HW+.18&&y<GOAL_H+.15){
+    setOutcome('post');
+    sfx.post();
+    showMsg('POTEAUUU !');
+    say(pick(['Poteau !','Le poteau !!!','À quelques centimètres !','Le montant tremble encore !']),true);
+    cheer(.55);
+    BV.vel.z*=-.45;BV.vel.x*=-.35;BV.vel.y*=.6;
+    BV.pos.z=s*(HL-.06);
+  }else{
+    setOutcome('out');
+    showMsg(y>=GOAL_H+.15&&Math.abs(x)<GOAL_HW+.18?'AU-DESSUS !':'DEHORS !','Raté…');
+    if(Math.random()<.5)say(pick(['À côté','Hors cadre','Au-dessus !','Ça passe loin','Trop croisé']));
+  }
+}
+
+// Arrêt du gardien IA : distance main-ballon < portée (statique, saut ou plongeon).
+function keeperSaveCheck(){
+  const K=S.keeper;
+  let reach=.8,jump=0;
+  if(K.jumpT>=0&&K.jumpT<.55)jump=Math.sin(Math.min(K.jumpT/.55,1)*Math.PI)*.8;
+  if(K.dived&&K.diveT>=0&&K.diveT<.45)reach=1.15;
+  else if(jump>.1)reach=.95;
+  const hy=.85+jump+(K.dived?(K.predY-.85)*.5:0);
+  const dx=BV.pos.x-K.x,dy=BV.pos.y-hy;
+  if(Math.hypot(dx,dy)<reach+BALL_R){
+    setOutcome('save');
+    sfx.save();
+    showMsg('ARRÊT DU GARDIEN !','Bien vu, mais réessaie !');
+    say(pick([
+      'Arrêt du gardien !',
+      'Belle parade !',
+      'Il repousse le missile !',
+      'Le portier s\'envole et sort le ballon !',
+      'Quelle détente, et c\'est repoussé !'
+    ]),true);
+    cheer(.6);
+    if(!K.dived){K.dived=true;K.diveT=0;K.diveDir=Math.sign(BV.pos.x-K.x)||1;}
+    if(S.lastShotPow>.7){S.pendingReplay=true;S.replayDelay=.5;S.outcomeT=99;}
+    BV.vel.z=Math.abs(BV.vel.z)*.35+2;
+    BV.vel.x=BV.vel.x*.25+(Math.random()-0.5)*3;
+    BV.vel.y=Math.max(BV.vel.y*.2,2);
+    BV.pos.z=-19.2;
+  }
+}
+
+// Votre arrêt : même principe, portée accrue pendant le plongeon.
+function userSaveCheck(){
+  const reach=S.dive.active?1.35:.95;
+  const hy=myGK.userData.handsY??1;
+  const dx=BV.pos.x-myGK.position.x,dy=BV.pos.y-hy;
+  if(Math.hypot(dx,dy)<reach+BALL_R){
+    setOutcome('save');
+    S.stats.saves++;
+    sfx.save();
+    showMsg('ARRÊÊÊT !','Quel réflexe !');
+    say(pick([
+      'Arrêt ! Quel réflexe !',
+      'Décupqué sur la ligne !',
+      'Arrêt décisif !',
+      'Main salvatrice du gardien !',
+      'Quel gardien ! Sortie de vol magnifique !'
+    ]),true);
+    if(!S.dive.active)S.reflex={t:0,dir:Math.sign(BV.pos.x-myGK.position.x)||1};
+    if(S.dive.active){S.pendingReplay=true;S.replayDelay=.5;S.outcomeT=99;}
+    BV.vel.z=-Math.abs(BV.vel.z)*.3-2;
+    BV.vel.x=BV.vel.x*.25+(Math.random()-0.5)*3;
+    BV.vel.y=Math.max(BV.vel.y*.2,2);
+    BV.pos.z=19.2;
+  }
+}
+
+// Plongeon du joueur (clic/Espace en défense) vers le point visé du réticule.
+function tryDive(){
+  if(S.dive.active||S.dive.cool>0||S.outcome)return;
+  const d=S.dive;
+  d.active=true;d.t=0;
+  d.from=myGK.position.x;
+  d.to=THREE.MathUtils.clamp(S.aimD.x,-2.5,2.5);
+  d.toY=THREE.MathUtils.clamp(S.aimD.y,.25,1.95);
+  d.dir=Math.sign(d.to-d.from)||1;
+  d.cool=.85;
+}
+
+// Nouvelle action adverse : le bloc bleu reprend sa formation,
+// un attaquant est tiré au sort pour descendre avec le ballon.
+function newStriker(){
+  const meshes=[foe,...blueEx];
+  meshes.forEach((p,i)=>{const s=BLUE_F[i];if(s)place(p,s[0],s[1],0,'relax');});
+  strikerM=meshes[(Math.random()*meshes.length)|0];
+  S.strikerRole=strikerM.userData.role;
+  strikerM.position.set((Math.random()*2-1)*5,0,8.5);
+  strikerM.rotation.set(0,0,0);
+  strikerM.userData.armL.rotation.z=.25;strikerM.userData.armR.rotation.z=-.25;
+  S.striker={state:'go',spot:new THREE.Vector3((Math.random()*2-1)*6,0,10+Math.random()*3),timer:0,wob:Math.random()*9,passed:false};
+  holder='stk';S.aiPassTo=null;
+  fPrevX=strikerM.position.x;fPrevZ=strikerM.position.z;
+}
+
+// Remise en jeu : repositions, états et ballon remis au bon camp.
+function resetRound(){
+  S.outcome=null;S.outcomeT=0;S.charging=false;
+  S.passTo=null;S.aiPassTo=null;S.duel=null;S.duelCd=.4;S.passCd=.4;
+  S.animThrow=null;S.pendingReplay=false;foeStun=0;S.jumpT=null;S.reflex=null;S.susp=null;
+  myGK.userData.stK=0;gk.userData.stK=0;
+  S.active=you;S.activeRole='CB';you.userData.role='CB';
+  axPrev=you.position.x;azPrev=you.position.z;
+  ui.power.style.display='none';aimRing.visible=false;
+  if(S.phase==='attack'){
+    you.position.set(Math.random()*4-2,0,-8.5);
+    you.rotation.set(0,Math.PI,0);
+    place(foe,foeSlot.x,foeSlot.z,0,'out');
+    const K=S.keeper;
+    Object.assign(K,{state:'idle',x:0,jumpT:-1,diveT:-1,jumped:false,dived:false});
+    place(gk,0,-19.5,0,'up');
+    place(myGK,0,19.5,Math.PI,'relax');
+    holder='you';
+  }else{
+    const d=S.dive;
+    Object.assign(d,{active:false,t:0,cool:0});
+    myGK.position.set(0,0,19.5);myGK.rotation.set(0,Math.PI,0);
+    myGK.userData.handsY=1;S.gkTX=0;
+    place(gk,0,-19.5,0,'up');
+    newStriker();
+  }
+  BV.pos.set(0,1.2,0);BV.vel.set(0,0,0);
+}
+
+// Démarre une période : disposition des équipes, hints, sifflet, chrono.
+function startPhase(which){
+  S.phase=which;S.idx++;S.saidTen=false;
+  if(S.idx===1){
+    S.marioArmed=Math.random()<.55;
+    S.marioAt=S.marioArmed?elapsed+8+Math.random()*45:null;
+    SUSP_BAG.length=0;
+  }else{S.marioArmed=false;S.marioAt=null;}
+  layoutTeams(which);
+  resetRound();
+  S.timer=PHASE_TIME;S.mode='play';
+  ui.menu.classList.add('hidden');ui.end.style.display='none';
+  if(which==='attack'){
+    ui.phase.textContent='ATTAQUE — Marquez !';
+    ui.hint.innerHTML='<b>ZQSD / WASD</b> — courir (avancée bloquée si pressé à 4 m)<br><b>Souris</b> — viser · <b>Clic / Espace</b> — tir, saut obligatoire devant les 6 m<br><b>E / clic droit</b> — passe au coéquipier visé (anneau bleu clair)<br><b>Maj</b> — feinte 3 appuis · <b>R</b> — roulette';
+    showMsg('À L\'ATTAQUE !','Marquez un maximum de buts en 45 s',2);
+    say(pick([
+      'Mi-temps d\'attaque. À vous de marquer.',
+      'Place à l\'attaque ! Le but adverse vous attend.',
+      'À vos marques pour attaquer !'
+    ]));
+  }else{
+    ui.phase.textContent='DÉFENSE — Arrêtez !';
+    ui.hint.innerHTML='<b>Souris / flèches</b> — se déplacer sur la ligne<br><b>Clic ou Espace</b> — plongeon<br><b>Boucliez votre but !</b>';
+    showMsg('DANS LES BUTS !','Arrêtez les tirs adverses pendant 45 s',2);
+    say(pick([
+      'Mi-temps de défense. Protégez votre but.',
+      'Place à la défense ! Soyez une muraille.',
+      'Dans les buts : à vous de tout arrêter !'
+    ]));
+  }
+  resetRound();
+  sfx.whistle();
+  hud();
+}
+
+// Fin de période : pause courte puis bascule attaque <-> défense.
+function endPhase(){
+  S.mode='wait';
+  S.charging=false;aimRing.visible=false;ui.power.style.display='none';
+  sfx.whistle();
+  if(REF.on){zoroWhistle('period');refArm();}
+  showMsg('FIN DE LA PÉRIODE','',1.6);
+  say('Fin de la période.');
+  cheer(.6);
+  later(1800,()=>{
+    if(S.idx>=2)finishGame();
+    else startPhase(S.phase==='attack'?'defense':'attack');
+  });
+}
+
+// Bilan final : statistiques détaillées et verdict humoristique.
+function finishGame(){
+  S.mode='end';
+  const st=S.stats;
+  ui.endStats.innerHTML=
+    `Buts marqués : <b>${st.goals}</b> sur ${st.shots} tirs (${st.shots?Math.round(st.goals/st.shots*100):0}&nbsp;%)<br>`+
+    `Arrêts réalisés : <b>${st.saves}</b> sur ${st.faced} tirs subis`;
+  const gr=st.shots?st.goals/st.shots:0, sr=st.faced?st.saves/st.faced:0;
+  ui.verdict.textContent=
+    gr>.5&&sr>.5?'Buteur d\'élite ET muraille — champion !':
+    gr>.5?'Excellente attaque ! La défense peut suivre ?':
+    sr>.5?'Quelle muraille ! Dommage côté finition…':
+    st.goals+st.saves>0?'Pas mal ! Encore un effort pour la gloire.':
+    'Silence radio… On remet ça ?';
+  ui.end.style.display='flex';
+  sfx.whistle();
+  cheer(1);
+  if(REF.on){zoroWhistle('final');refArm();}
+  say('Coup de sifflet final. '+ui.verdict.textContent,true);
+}
+
+$('btnAtk').onclick=()=>{audio();S.stats={goals:0,shots:0,saves:0,faced:0};S.idx=0;hud();startPhase('attack');};
+$('btnDef').onclick=()=>{audio();S.stats={goals:0,shots:0,saves:0,faced:0};S.idx=0;hud();startPhase('defense');};
+$('btnReplay').onclick=()=>{
+  S.runId++;
+  S.mode='menu';S.idx=0;
+  S.stats={goals:0,shots:0,saves:0,faced:0};hud();
+  ui.end.style.display='none';ui.menu.classList.remove('hidden');
+  if('speechSynthesis'in window)speechSynthesis.cancel();
+};
+$('chipVoice').onclick=()=>{
+  VOICE.on=!VOICE.on;
+  $('chipVoice').textContent='VOIX '+(VOICE.on?'ON':'OFF');
+  if(!VOICE.on&&'speechSynthesis'in window)speechSynthesis.cancel();
+};
+$('chipCrowd').onclick=()=>{
+  CROWD.on=!CROWD.on;
+  $('chipCrowd').textContent='FOULE '+(CROWD.on?'ON':'OFF');
+};
+$('chipRef').onclick=()=>{
+  REF.on=!REF.on;
+  $('chipRef').textContent='ARBITRE '+(REF.on?'ON':'OFF');
+};
+
+/* ---------- MISE À JOUR ATTAQUE ----------
+   Déplacements du joueur actif (bloqués si pressé à 4 m, hors duels),
+   clamp de la zone des 6 m, pressing adverse (piégé par les feintes),
+   gardien IA (suivi, saut, plongeon), balle collée à la main forte,
+   charge du tir / réticule / réception de passe.*/
+function updateAttack(dt){
+  const A=S.active;
+  let mx=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0);
+  let mz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0);
+  if(S.susp){mx=0;mz=0;}
+  const ml=Math.hypot(mx,mz)||1;
+
+  if(S.duel){
+    const D=S.duel;D.t+=dt;const q=Math.min(1,D.t/D.dur);
+    if(D.type==='juke'){
+      const dec=1-q*q;
+      A.position.addScaledVector(D.lat,6.5*dec*dt);
+      A.position.addScaledVector(D.fw,1.3*dt);
+    }else{
+      if(q<.55){
+        const k=q/.55,e=k*(2-k),ang=-Math.PI*2*e;
+        const r=rotYv(D.off.x,D.off.z,ang);
+        A.position.set(D.pivot.x+r[0],0,D.pivot.z+r[1]);
+        A.rotation.y=D.yaw0+ang;
+      }else{
+        if(!D.burst){D.burst=true;A.rotation.y=Math.atan2(D.gp.x,D.gp.z);}
+        A.position.addScaledVector(D.gp,5.2*dt);
+      }
+    }
+    if(q>=1){S.duel=null;S.duelCd=.75;}
+  }else{
+    const pres=pressured(A);
+    let imx=mx,imz=mz;
+    if(pres&&imz<0)imz=0;
+    const il=Math.hypot(imx,imz)||1;
+    const sp=(S.charging?2.2:pres?3.4:6.2)*dt;
+    A.position.x=THREE.MathUtils.clamp(A.position.x+imx/il*sp,-HW+.4,HW-.4);
+    A.position.z=THREE.MathUtils.clamp(A.position.z+imz/il*sp,-HL+1.4,6);
+    for(const w of wallB){
+      const wx=A.position.x-w.position.x,wz=A.position.z-w.position.z,dw=Math.hypot(wx,wz);
+      if(dw<.8&&dw>1e-4){A.position.x=w.position.x+wx/dw*.8;A.position.z=w.position.z+wz/dw*.8;}
+    }
+    A.position.x=THREE.MathUtils.clamp(A.position.x,-HW+.4,HW-.4);
+    A.position.z=THREE.MathUtils.clamp(A.position.z,-HL+1.4,6);
+    if(S.jumpT===null||S.jumpT>.42){
+      const dxz=A.position.x,dzc=A.position.z+HL,d=Math.hypot(dxz,dzc);
+      if(dzc>-.5&&d<5.92){const kk=5.94/Math.max(d,.01);A.position.x=dxz*kk;A.position.z=-HL+dzc*kk;}
+    }
+    A.rotation.y=Math.atan2(-A.position.x,-A.position.z-HL);
+  }
+  if(S.jumpT!==null){
+    S.jumpT+=dt;
+    const jt=S.jumpT/.55;
+    A.position.y=jt<1?Math.sin(jt*Math.PI)*.55:0;
+    if(S.jumpT>=.55){S.jumpT=null;A.position.y=0;}
+  }
+
+  const dsp=Math.min(8,Math.hypot(A.position.x-axPrev,A.position.z-azPrev)/Math.max(dt,1e-4));
+  axPrev=A.position.x;azPrev=A.position.z;
+  humanUpdate(A,dt,dsp,(S.duel&&S.duel.type==='spin')?.3:(S.duel?1.5:1));
+  const aside=strongSide(S.activeRole);
+  if(S.susp&&S.susp.mesh===A){
+    const tt=S.susp.t/S.susp.dur;
+    const m01=tt<.55?.45+.15*(tt/.55):.6+.4*Math.min(1,(tt-.55)/.35);
+    throwSide(A,Math.min(1,m01),S.susp.side);
+  }
+  else if(S.animThrow&&S.animThrow.mesh===A)throwSide(A,Math.min(1,S.animThrow.t/S.animThrow.dur),S.animThrow.side??aside);
+  else if(S.charging&&holder==='you')windupSide(A,Math.min(1,S.chargeT/.4),aside);
+  else relaxPose(A,10*dt);
+
+  let tgt;
+  if(foeStun>0){
+    foeStun-=dt;tgt=foeBite;
+  }else{
+    tgt=tmpV.set(A.position.x*.55,0,Math.min(-9,A.position.z*.6-4));
+  }
+  const df=tgt.clone().sub(foe.position);df.y=0;
+  const dd=df.length();
+  const fspd=(foeStun>0?5.2:4.6)*dt;
+  if(dd>.01)foe.position.addScaledVector(df.normalize(),Math.min(fspd,dd));
+  foe.position.z=THREE.MathUtils.clamp(foe.position.z,-HL+2.5,-2);
+  foe.position.x=THREE.MathUtils.clamp(foe.position.x,-HW+.4,HW-.4);
+  const sep=new THREE.Vector3().subVectors(foe.position,A.position);sep.y=0;
+  if(sep.length()<.95)foe.position.add(sep.normalize().multiplyScalar(.95-sep.length()));
+  foe.rotation.y=Math.atan2(A.position.x-foe.position.x,A.position.z-foe.position.z);
+  const fdsp=Math.min(8,Math.hypot(foe.position.x-fPrevX,foe.position.z-fPrevZ)/Math.max(dt,1e-4));
+  fPrevX=foe.position.x;fPrevZ=foe.position.z;
+  humanUpdate(foe,dt,fdsp);
+
+  const K=S.keeper;
+  if(K.state==='idle'){
+    K.x+=(THREE.MathUtils.clamp(A.position.x*.4,-1.2,1.2)-K.x)*Math.min(1,3*dt);
+  }else if(K.state==='react'){
+    K.react-=dt;
+    if(K.react<=0)K.state='track';
+  }else{
+    K.x+=THREE.MathUtils.clamp(K.predX-K.x,-7*dt,7*dt);
+  }
+  if(K.state==='track'){
+    if(!K.jumped&&K.predY>1.2&&Math.random()<.85){K.jumped=true;K.jumpT=0;}
+    if(!K.dived&&Math.abs(K.predX-K.x)>1.02){K.dived=true;K.diveT=0;K.diveDir=Math.sign(K.predX-K.x)||1;}
+  }
+  if(K.jumpT>=0){K.jumpT+=dt;if(K.jumpT>.55)K.jumpT=-1;}
+  if(K.diveT>=0){K.diveT+=dt;K.x+=K.diveDir*Math.max(0,.32-K.diveT)*10*dt*.6;if(K.diveT>.5)K.diveT=-1;}
+  K.x=THREE.MathUtils.clamp(K.x,-2.1,2.1);
+  const jump=K.jumpT>=0?Math.sin(Math.min(K.jumpT/.55,1)*Math.PI)*.8:0;
+  const dh=K.diveT>=0?Math.sin(Math.min(1,K.diveT/.5)*Math.PI)*.3:0;
+  gk.position.set(K.x,Math.max(jump,dh),-19.5);
+  gk.rotation.z=K.diveT>=0?-K.diveDir*Math.min(1,K.diveT*3):0;
+  humanUpdate(gk,dt,Math.abs(jump)>0?2:1,.4);
+  const U=gk.userData;U.stK=U.stK??0;
+  if(K.diveT>=0){U.stDir=K.diveDir;}
+  const ktgt=K.diveT>=0&&K.diveT<.55?Math.min(1,K.diveT/.15):0;
+  U.stK+=(ktgt-U.stK)*Math.min(1,12*dt);
+  if(U.stK>.005)starApply(U,U.stK,U.stDir||1);
+  else{
+    U.armL.rotation.z+=(1.9+Math.sin(elapsed*2.2)*.06-U.armL.rotation.z)*.15;
+    U.armR.rotation.z+=(-1.9-Math.cos(elapsed*2.1)*.06-U.armR.rotation.z)*.15;
+    U.spine.rotation.z*= .8;
+  }
+
+  if(holder==='you'){
+    const Sside=strongSide(S.activeRole);
+    const u=A.userData,hm=Sside>0?u.handR:u.handL;
+    hm.getWorldPosition(BV.pos);
+    BV.vel.set(0,0,0);
+    if(S.charging){
+      S.chargeT+=dt;
+      ui.power.style.display='block';
+      ui.fill.style.width=Math.min(100,S.chargeT/.7*100)+'%';
+      computeAim(planeA,S.aim,6,3.4);
+      aimRing.visible=true;
+      aimRing.material.opacity=.9;
+      aimRing.position.set(S.aim.x,S.aim.y,-HL+.05);
+      aimRing.lookAt(camera.position);
+      mateRing.visible=false;
+    }else{
+      ui.power.style.display='none';
+      aimRing.visible=false;
+      const cand=(!S.duel&&!S.outcome)?bestPassTarget():null;
+      mateRing.visible=!!cand;
+      if(cand)mateRing.position.set(cand.position.x,.03,cand.position.z);
+    }
+  }else{
+    mateRing.visible=false;
+    if(holder===null&&S.passTo){
+      const r=S.passTo;
+      const rdx=BV.pos.x-r.position.x,rdz=BV.pos.z-r.position.z;
+      const rl=Math.hypot(rdx,rdz);
+      if(rl>.35){
+        r.position.x+=rdx/rl*Math.min(5*dt,rl-.25);
+        r.position.z+=rdz/rl*Math.min(5*dt,rl-.25);
+        r.rotation.y=Math.atan2(rdx,rdz);
+        humanUpdate(r,dt,4);
+      }
+      if(BV.pos.distanceTo(tmpV.set(r.position.x,1.25,r.position.z))<1.15){
+        holder='you';S.active=S.passTo;S.activeRole=S.passTo.userData.role;S.passTo=null;
+        S.specialUntil=elapsed+2;S.passCd=.35;
+        axPrev=S.active.position.x;azPrev=S.active.position.z;
+        tone(520,760,.09,'triangle',.16);
+        if(Math.random()<.25)say(pick(['Jolie passe','Bien reçue','Passé éclair']));
+      }
+    }
+  }
+  if(S.susp){
+    S.susp.t+=dt;
+    const tt=S.susp.t/S.susp.dur;
+    A.position.y=Math.sin(Math.min(1,tt*1.08)*Math.PI)*.6;
+    if(tt>=.55&&holder==='you'){
+      finishShot(S.susp.p,BV.pos.clone(),S.susp.side);
+    }
+    if(tt>=1){A.position.y=0;S.jumpT=null;S.susp=null;}
+  }
+  updateMarks(dt);
+}
+
+/* ---------- MISE À JOUR DÉFENSE ----------
+   Votre gardien : suivi souris/flèches, plongeon-étoile, interception des passes.
+   Attaquant IA : course vers son zone d'appel, arme, tire — ou joue une passe.*/
+function updateDefense(dt){
+  const kb=(keys.ArrowRight||keys.KeyD?1:0)-(keys.ArrowLeft||keys.KeyA?1:0);
+  if(kb)S.gkTX=THREE.MathUtils.clamp(S.gkTX+kb*7*dt,-2.6,2.6);
+  S.aimD.set(S.gkTX,S.aimD.y,HL);
+
+  const d=S.dive;
+  d.cool=Math.max(0,d.cool-dt);
+  let hy=1,tilt=0;
+  if(d.active){
+    d.t+=dt;
+    const k=Math.min(1,d.t/.3),e=1-Math.pow(1-k,3);
+    myGK.position.x=d.from+(d.to-d.from)*e;
+    hy=1+(d.toY-1)*e;
+    tilt=-d.dir*e*1.05;
+    if(d.t>.5){d.active=false;}
+  }else{
+    myGK.position.x+=(S.gkTX-myGK.position.x)*Math.min(1,12*dt);
+    tilt=myGK.rotation.z*(1-Math.min(1,8*dt));
+  }
+  myGK.userData.handsY=hy;
+  const hopSrc=S.dive.active?S.dive.t:(S.reflex?S.reflex.t:0);
+  const hopOn=S.dive.active||(S.reflex&&S.reflex.t<.5);
+  myGK.position.y=hopOn?.3*Math.sin(Math.min(1,hopSrc/.5)*Math.PI):0;
+  myGK.rotation.z=tilt;
+  myGK.position.x=THREE.MathUtils.clamp(myGK.position.x,-2.7,2.7);
+
+  const U=myGK.userData;U.stK=U.stK??0;
+  let stgt=0,wdir=U.stDir||1;
+  if(S.reflex){S.reflex.t+=dt;stgt=Math.min(1,S.reflex.t/.15);wdir=S.reflex.dir;if(S.reflex.t>.5)S.reflex=null;}
+  if(S.dive.active){stgt=Math.max(stgt,Math.min(1,S.dive.t/.15));wdir=S.dive.dir;}
+  U.stDir=wdir;
+  U.stK+=(stgt-U.stK)*Math.min(1,12*dt);
+  if(U.stK>.005)starApply(U,U.stK,-U.stDir);
+  else{
+    const rz=1.15+Math.sin(elapsed*2)*.05;
+    U.armL.rotation.z+=(rz-U.armL.rotation.z)*.2;
+    U.armR.rotation.z+=(-rz-U.armR.rotation.z)*.2;
+  }
+
+  if(holder===null&&S.aiPassTo){
+    if(BV.pos.distanceTo(tmpV.set(S.aiPassTo.position.x,1.25,S.aiPassTo.position.z))<1){
+      holder='stk';strikerM=S.aiPassTo;S.aiPassTo=null;
+      S.striker.state='aim';S.striker.timer=.45+Math.random()*.4;
+      fPrevX=strikerM.position.x;fPrevZ=strikerM.position.z;
+      tone(520,760,.09,'triangle',.16);
+    }else{
+      const hy2=myGK.userData.handsY||1;
+      if(BV.pos.distanceTo(tmpV.set(myGK.position.x,hy2,19.5))<1.2){
+        S.stats.saves++;setOutcome('save');sfx.save();
+        showMsg('INTERCEPTION !','Le gardien coupe la passe');
+        say(pick(['Le gardien coupe la passe !','Interception du gardien !']),true);
+        BV.vel.z=-Math.abs(BV.vel.z)*.3-2;BV.vel.y=Math.max(BV.vel.y*.2,2);
+        S.aiPassTo=null;
+      }
+    }
+  }
+
+  const st=S.striker;
+  if(st&&holder==='stk'){
+    const M=strikerM,f=M.position;
+    if(st.state==='go'){
+      const dir=tmpV.subVectors(st.spot,f);dir.y=0;
+      const dist=dir.length();
+      if(dist<.4){
+        st.state='aim';st.timer=.35+Math.random()*.55;
+        if(!st.passed&&Math.random()<.35)aiPass();
+      }
+      else{
+        dir.normalize();
+        f.addScaledVector(dir,Math.min(5.4*dt,dist));
+      }
+    }else if(st.state==='aim'){
+      st.timer-=dt;
+      f.x+=Math.sin(performance.now()/130+st.wob)*.35*dt;
+      if(st.timer<=0){
+        const side=(myGK.position.x>0?-1:1);
+        const tx=(Math.random()<.7?side:(Math.random()<.5?-1:1))*(0.35+Math.random()*.9);
+        const ty=Math.random()<.5?.25+Math.random()*.5:1.05+Math.random()*.8;
+        const start=BV.pos.clone();
+        S.shotFrom.copy(start);
+        S.lastShotPow=.55+Math.random()*.4;
+        const dir=new THREE.Vector3(tx-start.x,ty-start.y,HL+.1-start.z);
+        const spd=13+Math.random()*7,T=dir.length()/spd;
+        dir.normalize().multiplyScalar(spd);
+        dir.y+=.5*GRAV*T;
+        BV.vel.copy(dir);
+        holder=null;
+        S.stats.faced++;
+        sfx.shot();
+        S.animThrow={mesh:M,side:strongSide(M.userData.role),t:0,dur:.32};
+        st.state='done';
+      }
+    }
+    M.rotation.y=Math.atan2(myGK.position.x-f.x,HL-f.z);
+    const sdsp=Math.min(8,Math.hypot(f.x-fPrevX,f.z-fPrevZ)/Math.max(dt,1e-4));
+    fPrevX=f.x;fPrevZ=f.z;
+    humanUpdate(M,dt,sdsp);
+    const mside=strongSide(M.userData.role);
+    if(S.animThrow&&S.animThrow.mesh===M)throwSide(M,Math.min(1,S.animThrow.t/S.animThrow.dur),S.animThrow.side??mside);
+    else if(st.state==='aim')windupSide(M,1-Math.min(1,Math.max(0,st.timer)/.6),mside);
+    else relaxPose(M,10*dt);
+    if(holder==='stk'){
+      const u=M.userData,hm=strongSide(M.userData.role)>0?u.handR:u.handL;
+      hm.getWorldPosition(BV.pos);
+      BV.vel.set(0,0,0);
+    }
+  }
+  aimRing.visible=false;
+  mateRing.visible=false;
+  updateMarks(dt);
+}
+
+// L'attaquant IA redistribue parfois le ballon avant de conclure.
+function aiPass(){
+  const st=S.striker,M=strikerM;
+  const cands=blueEx.filter(b=>b!==M);
+  if(!cands.length)return;
+  const r=cands[(Math.random()*cands.length)|0];
+  const from=BV.pos.clone(),to=new THREE.Vector3(r.position.x,1.25,r.position.z);
+  const d=to.sub(from),T=d.length()/12;
+  d.normalize().multiplyScalar(12);d.y+=.5*GRAV*T*.95;
+  BV.vel.copy(d);
+  holder=null;S.aiPassTo=r;st.passed=true;st.state='wait';
+  S.shotFrom.copy(from);
+  S.animThrow={mesh:M,side:strongSide(M.userData.role),t:0,dur:.26};
+  sfx.shot();
+}
+
+// Caméra de jeu : poursuite derrière l'action ; orbite lente au menu/fin.
+function updateCamera(dt,t){
+  if(REPL.on)return;
+  let dp,dl;
+  if(S.mode==='play'||S.mode==='wait'){
+    if(S.phase==='attack'){
+      dp=tmpV.set(S.active.position.x*.35,5,S.active.position.z+8.5);
+      dl=new THREE.Vector3(S.active.position.x*.5,1,-HL+2);
+    }else{
+      dp=tmpV.set(myGK.position.x*.35,3.4,HL+4.8);
+      dl=new THREE.Vector3(myGK.position.x*.2,1.1,4);
+    }
+  }else{
+    const a=t*.12;
+    dp=tmpV.set(Math.sin(a)*19,9.5,Math.cos(a)*19);
+    dl=new THREE.Vector3(0,0,0);
+  }
+  camera.position.lerp(dp,Math.min(1,4*dt));
+  camLook.lerp(dl,Math.min(1,4*dt));
+  camera.lookAt(camLook);
+}
+
+/* ---------- RALENTI (REPLAY) ----------
+   Chaque image de jeu est archivée : positions/orientations de TOUS les
+   joueurs + 14 articulations chacun + ballon (position et rotation).
+   Relecture à 35 % de la vitesse, interpolée entre images, avec caméra
+   orbitale centrée sur le ballon. Déclenché sur beaux buts et beaux arrêts.*/
+const REC=[];const REPL={on:false,i:0,t:0,frames:null,camA:0};
+const CH=[['legL','x'],['legR','x'],['kneeL','x'],['kneeR','x'],
+  ['armL','x'],['armR','x'],['armL','z'],['armR','z'],
+  ['elbowL','x'],['elbowR','x'],['wristL','x'],['wristR','x'],
+  ['spine','y'],['spine','z']];
+const F=5+CH.length;
+function snap(){
+  const arr=new Float32Array(ALLP.length*F);
+  for(let i=0;i<ALLP.length;i++){
+    const p=ALLP[i],o=i*F,u=p.userData;
+    arr[o]=p.position.x;arr[o+1]=p.position.y;arr[o+2]=p.position.z;
+    arr[o+3]=p.rotation.y;arr[o+4]=p.rotation.z;
+    for(let c=0;c<CH.length;c++){const[j,ax]=CH[c];arr[o+5+c]=u[j].rotation[ax];}
+  }
+  return{t:elapsed,b:[BV.pos.x,BV.pos.y,BV.pos.z,ball.rotation.x,ball.rotation.z],v:arr};
+}
+const snapTmp={t:0,b:new Float32Array(5),v:new Float32Array(ALLP.length*F)};
+function mixFrames(a,b,k){
+  const o=snapTmp;
+  o.t=a.t+(b.t-a.t)*k;
+  for(let i=0;i<5;i++)o.b[i]=a.b[i]+(b.b[i]-a.b[i])*k;
+  for(let i=0;i<a.v.length;i++)o.v[i]=a.v[i]+(b.v[i]-a.v[i])*k;
+  return o;
+}
+function applySnap(s){
+  for(let i=0;i<ALLP.length;i++){
+    const p=ALLP[i],o=i*F,u=p.userData,v=s.v;
+    p.position.set(v[o],v[o+1],v[o+2]);
+    p.rotation.y=v[o+3];p.rotation.z=v[o+4];
+    for(let c=0;c<CH.length;c++){const[j,ax]=CH[c];u[j].rotation[ax]=v[o+5+c];}
+  }
+  ball.position.set(s.b[0],s.b[1],s.b[2]);
+  ball.rotation.x=s.b[3];ball.rotation.z=s.b[4];
+}
+function startReplay(){
+  const frames=REC.slice(Math.max(0,REC.length-170));
+  if(frames.length<10){S.pendingReplay=false;S.outcomeT=.7;return;}
+  REPL.frames=frames;REPL.i=0;REPL.t=0;REPL.on=true;
+  S.mode='replay';ui.chip.classList.remove('hidden');
+  aimRing.visible=false;selRing.visible=false;ui.power.style.display='none';
+  REPL.camA=Math.atan2(camera.position.x-ball.position.x,camera.position.z-ball.position.z);
+}
+function stopReplay(){
+  REPL.on=false;ui.chip.classList.add('hidden');
+  S.mode='play';S.pendingReplay=false;S.outcomeT=Math.min(S.outcomeT,.7);
+}
+
+/* ---------- BOUCLE PRINCIPALE ----------
+   Ordre : replay éventuel -> logique de période/action -> mise à jour
+   attaque ou défense -> physique du ballon libre -> archive replay ->
+   HUD -> habillage (ballon, statiques, anneaux) -> caméra -> rendu.*/
+const clock=new THREE.Clock();
+let elapsed=0;
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.05);
+  elapsed+=dt;
+  CROWD.uniT.value=elapsed;
+  CROWD.uniB.value=Math.min(1,CROWD.boost);
+  CROWD.uniOn.value+=((CROWD.on?1:0)-CROWD.uniOn.value)*Math.min(1,dt*4);
+  VIPS.forEach(v=>{
+    let extra=0;
+    if(v.mario&&S.marioArmed&&S.marioAt!==null&&elapsed>=S.marioAt){
+      S.marioArmed=false;S.marioAt=null;
+      v.hopT=0;
+      speak('Heeeere we go ooo',{lang:'en-US',rate:1.12,pitch:2});
+    }
+    if(v.hopT!==null&&v.hopT!==undefined){
+      v.hopT+=dt;
+      extra=Math.sin(Math.min(1,v.hopT/.45)*Math.PI)*.28;
+      if(v.hopT>=.45)v.hopT=null;
+    }
+    v.g.position.y=v.baseY+(Math.sin(elapsed*2.3+v.phase)*.5+.5)*(.10+.36*CROWD.uniB.value)*CROWD.uniOn.value+extra*CROWD.uniOn.value;
+  });
+  updateCrowdAudio(dt);
+
+  if(REPL.on){
+    REPL.t+=dt*.35;
+    const fr=REPL.frames,t0=fr[0].t;
+    while(REPL.i<fr.length-1&&fr[REPL.i+1].t<=t0+REPL.t)REPL.i++;
+    const a=fr[REPL.i],b=fr[Math.min(REPL.i+1,fr.length-1)];
+    const k=b===a?0:THREE.MathUtils.clamp((t0+REPL.t-a.t)/Math.max(1e-4,b.t-a.t),0,1);
+    applySnap(mixFrames(a,b,k));
+    REPL.camA+=dt*.3;
+    const f=ball.position,r=5.6;
+    camera.position.lerp(tmpV.set(f.x+Math.sin(REPL.camA)*r,2.4,f.z+Math.cos(REPL.camA)*r),Math.min(1,3*dt));
+    camLook.lerp(tmpV.set(f.x,.8,f.z),Math.min(1,5*dt));
+    camera.lookAt(camLook);
+    if(REPL.i>=fr.length-1)stopReplay();
+    renderer.render(scene,camera);
+    return;
+  }
+
+  if(S.mode==='play'){
+    if(S.outcome){
+      if(S.pendingReplay){
+        S.replayDelay-=dt;
+        if(S.replayDelay<=0){startReplay();renderer.render(scene,camera);return;}
+      }else{
+        S.outcomeT-=dt;
+        if(S.outcomeT<=0)resetRound();
+      }
+    }else{
+      S.timer-=dt;
+      if(S.timer<=10&&!S.saidTen&&S.timer>0){S.saidTen=true;say(pick(['Dix dernières secondes','Encore dix secondes !','Le temps s\'écoule vite !']));}
+      if(S.timer<=0){S.timer=0;endPhase();}
+    }
+    S.passCd=Math.max(0,S.passCd-dt);
+    S.duelCd=Math.max(0,S.duelCd-dt);
+    if(S.animThrow){S.animThrow.t+=dt;if(S.animThrow.t>S.animThrow.dur+.25)S.animThrow=null;}
+    if(S.phase==='attack')updateAttack(dt);
+    else updateDefense(dt);
+    updateReferee(dt);
+    if(holder===null)integrateBall(dt);
+    REC.push(snap());
+    if(REC.length>420)REC.shift();
+    hud();
+  }else{
+    aimRing.visible=false;
+    ui.power.style.display='none';
+  }
+
+  ball.position.copy(BV.pos);
+  ball.rotation.x+=BV.vel.z*dt/BALL_R*.5;
+  ball.rotation.z-=BV.vel.x*dt/BALL_R*.5;
+  statics.forEach((p,i)=>{
+    p.position.y=Math.abs(Math.sin(elapsed*2.1+i*1.7))*.03;
+    p.rotation.z=Math.sin(elapsed*1.4+i)*.02;
+  });
+  selRing.visible=S.mode==='play'&&S.phase==='attack';
+  if(selRing.visible){
+    selRing.position.set(S.active.position.x,.03,S.active.position.z);
+    const pu=1+.07*Math.sin(elapsed*6);
+    selRing.scale.set(pu,pu,1);
+  }
+
+  updateCamera(dt,elapsed);
+  renderer.render(scene,camera);
+}
+// Aperçu initial (disposition « attaque ») visible derrière le menu.
+S.phase='attack';layoutTeams('attack');resetRound();S.phase=null;
+animate();
+
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>

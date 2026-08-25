@@ -4,6 +4,14 @@ Cette page fournit quelques informations sur la **découverte d'outils en lien a
 
 Un LLM est un modèle d'apprentissage profond entraîné sur un gros volume de données capable de comprendre et générer des informations en langage avancé : langage naturel, traduction de texte, résolution de problèmes, etc.
 
+## Opencode et modèle [Ox Alpha](https://oxalpha.com/)
+
+Cf. [handball-arena/README.md](handball-arena/README.md)
+
+* [Jouer ici !](https://raw.githack.com/cvagner/ai-llm-walkthrough/handball-arena/index.html)
+
+![Handball Arena](handball-arena/handball-arena.gif)
+
 ## Open WebUI et Ollama (`docker` et intégration)
 
 Cf. [openwebui-with-ollama-in-docker/README.md](openwebui-with-ollama-in-docker/README.md)
