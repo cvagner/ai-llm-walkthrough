@@ -8,7 +8,7 @@ Un LLM est un modèle d'apprentissage profond entraîné sur un gros volume de d
 
 Cf. [handball-arena/README.md](handball-arena/README.md)
 
-* [Jouer ici !](https://raw.githack.com/cvagner/ai-llm-walkthrough/handball-arena/index.html)
+* [Jouer ici !](https://raw.githack.com/cvagner/ai-llm-walkthrough/main/handball-arena/index.html)
 
 ![Handball Arena](handball-arena/handball-arena.gif)
 
