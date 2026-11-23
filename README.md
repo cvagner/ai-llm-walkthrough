@@ -34,6 +34,12 @@ Cf. [openwebui-with-ollama-in-docker/README.md](openwebui-with-ollama-in-docker/
 **Exemple de développement (intégration) :**
 * ![LangChain Chat](openwebui-with-ollama-in-docker/langchain_chat.png)
 
+## Chat local avec PostgreSQL/PostGIS (Open WebUI, Ollama et MCP)
+
+Discuter en langage naturel avec une base PostGIS : le modèle local interroge la base par le serveur MCP [postgres-mcp](https://github.com/crystaldba/postgres-mcp), exposé à Open WebUI par [mcpo](https://github.com/open-webui/mcpo). Tout est configuré par `docker compose up -d`, sans clic.
+
+Cf. [local-chat-with-postgres/README.md](local-chat-with-postgres/README.md)
+
 ## Langchain et LMStudio (intégration)
 
 Cf. [langchain-with-lmstudio/README.md](langchain-with-lmstudio/README.md)

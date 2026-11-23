@@ -1,0 +1,177 @@
+name: local-chat-with-postgres
+
+# Démo : tout est configuré au lancement (`docker compose up -d`), sans clic.
+#   db ──▶ db-mcp (MCP, SSE) ──▶ mcpo (MCP → OpenAPI) ──▶ open-webui (+ Ollama intégré)
+# Cf https://lobehub.com/fr/mcp/baronco-open-webui-and-mcpo
+
+networks:
+  local-chat-with-postgres:
+    driver: bridge
+
+volumes:
+  ollama-data:
+  open-webui-data:
+
+
+x-logging: &default-logging
+  options:
+    max-size: "10k"
+    max-file: "20"
+
+x-durci: &durci
+  user: "${APP_UID:-10001}:${APP_GID:-10001}"
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: [/tmp]
+
+services:
+
+  db:
+    image: postgis/postgis:${POSTGIS_DOCKER_TAG:-17-3.6-alpine}
+    user: "${UID:-1000}:${GID:-1000}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      - PGDATA=/var/lib/postgresql/data/pgdata
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-database}
+    volumes:
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+    # Base volatile, voulue pour la démo : réinitialisée à chaque démarrage, rien à nettoyer.
+    tmpfs:
+      - /var/run/postgresql
+      - /tmp
+      - /var/lib/postgresql/data
+    deploy:
+      resources:
+        limits: {cpus: "1", memory: 512M}
+    healthcheck:
+      # Sonde en TCP : pendant l'initialisation, le serveur temporaire n'écoute que sur la socket,
+      # donc la base n'est déclarée saine qu'une fois les scripts d'init passés.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "${POSTGRES_USER:-postgres}", "-d", "${POSTGRES_DB:-database}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - local-chat-with-postgres
+    # ports:
+    #   - ${POSTGRES_PORT:-5432}:5432
+    restart: unless-stopped
+    logging: *default-logging
+
+  # MCP postgres, cf. https://github.com/crystaldba/postgres-mcp
+  db-mcp:
+    <<: *durci
+    image: crystaldba/postgres-mcp:latest
+    # restricted : transactions en lecture seule, le modèle ne peut pas modifier la base
+    command: [ "--access-mode=restricted", "--transport=sse" ]
+    environment:
+      - DATABASE_URI=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-database}
+    depends_on:
+      db:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits: {cpus: "0.5", memory: 256M}
+    healthcheck:
+      # /sse est un flux sans fin : on teste seulement l'écoute du port.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - local-chat-with-postgres
+    # ports:
+    #   - ${POSTGRES_MCP_PORT:-8000}:8000
+    restart: unless-stopped
+    logging: *default-logging
+
+  # MCP to OpenAPI proxy server, cf. https://github.com/open-webui/mcpo
+  mcpo:
+    <<: *durci
+    image: ghcr.io/open-webui/mcpo:main
+    command: [ "--config", "/app/config/config.json" ]
+    volumes:
+      - ./config/mcpo/config.json:/app/config/config.json:ro
+    depends_on:
+      db-mcp:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits: {cpus: "0.5", memory: 256M}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8000/postgres/openapi.json"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - local-chat-with-postgres
+    # ports:
+    #   - ${MCPO_PORT:-8000}:8000
+    restart: unless-stopped
+    logging: *default-logging
+
+  # Open WebUI with Ollama backend, cf. https://github.com/open-webui/open-webui
+  # Tourne encore en root : l'image :ollama écrit dans /root/.ollama, /app/backend et un volume de données
+  # amorcé avec des fichiers appartenant à root.
+  open-webui:
+    # Voir option docker --gpus=all
+    image: ghcr.io/open-webui/open-webui:ollama
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      WEBUI_SECRET_KEY: ${WEBUI_SECRET_KEY:-}
+      # Compte administrateur créé au premier démarrage (aucun écran d'inscription).
+      WEBUI_ADMIN_EMAIL: ${WEBUI_ADMIN_EMAIL:-admin@example.com}
+      WEBUI_ADMIN_PASSWORD: ${WEBUI_ADMIN_PASSWORD:-demo}
+      WEBUI_ADMIN_NAME: ${WEBUI_ADMIN_NAME:-Admin}
+      ENABLE_SIGNUP: "false"
+      # La configuration vient d'ici à chaque démarrage ; les réglages faits dans l'interface ne sont pas gardés.
+      ENABLE_PERSISTENT_CONFIG: "false"
+      # Outils PostgreSQL exposés par mcpo (identifiant d'outil : server:postgres).
+      # Seuls 4 des 9 outils sont proposés : un petit modèle s'y retrouve mieux.
+      TOOL_SERVER_CONNECTIONS: >-
+        [{"type": "openapi", "url": "http://mcpo:8000/postgres", "path": "openapi.json",
+          "auth_type": "none", "key": "",
+          "config": {"enable": true, "function_name_filter_list": "tool_execute_sql_post,tool_list_schemas_post,tool_list_objects_post,tool_get_object_details_post"},
+          "info": {"id": "postgres", "name": "PostgreSQL", "description": "Base PostGIS de la démo"}}]
+      # Modèle de la démo, créé par le post_start ci-dessous. Son prompt système est dans le Modelfile :
+      # DEFAULT_MODEL_PARAMS.system n'est pas appliqué aux modèles Ollama de base (vérifié en 0.13.4).
+      DEFAULT_MODELS: assistant-postgis:latest
+      # Outils PostgreSQL activés d'office sur tous les modèles. Les outils intégrés d'Open WebUI (notes,
+      # automatisations…) sont coupés : leurs descriptions saturent le contexte d'un petit modèle.
+      DEFAULT_MODEL_METADATA: '{"toolIds": ["server:postgres"], "capabilities": {"builtin_tools": false}}'
+      DEFAULT_MODEL_PARAMS: '{"function_calling": "native"}'
+    volumes:
+      - open-webui-data:/app/backend/data
+      - ollama-data:/root/.ollama
+      - ./config/ollama:/config/ollama:ro
+    depends_on:
+      mcpo:
+        condition: service_healthy
+    # Télécharge le modèle de base puis crée assistant-postgis (rapide si déjà dans le volume ollama-data).
+    post_start:
+      - command:
+          - bash
+          - -c
+          - |
+            set -e
+            for i in $$(seq 1 60); do ollama list >/dev/null 2>&1 && break; sleep 1; done
+            ollama pull ${OLLAMA_MODEL:-qwen2.5:3b}
+            { echo "FROM ${OLLAMA_MODEL:-qwen2.5:3b}"; cat /config/ollama/assistant-postgis.Modelfile; } > /tmp/assistant-postgis.Modelfile
+            ollama create assistant-postgis -f /tmp/assistant-postgis.Modelfile
+    deploy:
+      resources:
+        limits: {cpus: "12", memory: 8G}
+    networks:
+      - local-chat-with-postgres
+    ports:
+      - 127.0.0.1:${OPEN_WEBUI_PORT:-3000}:8080
+    restart: unless-stopped
+    logging: *default-logging
