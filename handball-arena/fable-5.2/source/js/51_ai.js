@@ -167,6 +167,7 @@ function aiAttack(t, h) {
     if (tm.st === TRANS) { sp = p.vmax; if (wing) u = 2.4; else if (r === PVT) { u = 7.2; w = 0; } else u = max(base[0], bu - 2.5); }
     else if (r === PVT) { const ap = arcPoint(clamp(arcT(bu, bw, 6.8) * 0.45, -0.33, 0.33), 6.85); u = ap[0]; w = ap[1]; }
     else if (!wing) { const adj = h && abs(chainIdx(r) - chainIdx(h.role)) === 1; u = base[0] + (adj ? -0.3 : 0.9); if (tm.tempo === 1 && h && CH_IDX[h.role] >= 0 && chainIdx(r) === chainIdx(h.role) + tm.circ) { u = base[0] - 1.9; w = base[1] * 0.9; sp = 6.4; } } /* temps fort : le suivant arrive lancé */
+    if (S.auto && tm.st !== TRANS) { u = max(0.6, u + tm.jit[2 * r]); w += tm.jit[2 * r + 1]; }
     let viaCombo = false;
     if (steps) { const mv = steps.mv[r]; if (mv) { u = mv[0]; w = mv[1]; sp = 6.4; viaCombo = true; if ((r === PVT || r === tm.combo.start) && nearOpp(p) < 1.2 && _no) _no.ai.cd = max(_no.ai.cd, 0.6); } } // écran : le défenseur pris dans le bloc est retenu un instant
     p.tx = dir * (HALF_L - u); p.tz = dir * w; p.tsp = sp;

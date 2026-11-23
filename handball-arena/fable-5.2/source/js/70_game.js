@@ -87,7 +87,7 @@ $('panel').addEventListener('click', e => {
   if (a === 'len') { menuState.len = +v; showMenu('home'); }
   else if (a === 'def') { S.defSys[1] = +v; showMenu('home'); }
   else if (a === 'play') { S.auto = false; initMatch(Date.now() & 0xffffff, menuState.len); UI.cam = 0; hideMenu(); updateCam(0, true); }
-  else if (a === 'demo') { S.auto = true; initMatch(20261118, menuState.len); UI.cam = 0; hideMenu(); updateCam(0, true); }
+  else if (a === 'demo') { S.auto = true; initMatch(Date.now() & 0xffffff, menuState.len); UI.cam = 0; hideMenu(); updateCam(0, true); }
   else if (a === 'tc') { const [i, j] = v.split(',').map(Number); startTrain('combo', i, j); UI.cam = 2; hideMenu(); updateCam(0, true); }
   else if (a === 'ts') { startTrain('tir', +v, 0); UI.cam = 1; hideMenu(); updateCam(0, true); }
   else if (a === 'resume') hideMenu();

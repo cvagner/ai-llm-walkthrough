@@ -3,7 +3,7 @@ const DT = 1 / 60;
 const B_HELD = 0, B_FLY = 1, B_LOOSE = 2, B_NET = 3;
 const K_NONE = 0, K_PASS = 1, K_SHOT = 2;
 const TRANS = 0, PLACED = 1, COMBO = 2;
-const mkTm = () => ({ st: TRANS, combo: null, ci: -1, vi: 0, step: -1, stepT: 0, circ: 1, passes: 0, next: -1, tempo: 0, tempoN: 0, strongAt: 4 });
+const mkTm = () => ({ st: TRANS, combo: null, ci: -1, vi: 0, step: -1, stepT: 0, circ: 1, passes: 0, next: -1, tempo: 0, tempoN: 0, strongAt: 4, jit: new Float32Array(14) });
 const S = {
   P: [], ball: { x: 0, y: 1, z: 0, vx: 0, vy: 0, vz: 0, rot: 0, spin: 0, state: B_LOOSE, holder: -1, kind: K_NONE, target: -1, shooter: -1, lastTeam: 0, lastP: -1, fly: 0, seen: 0, curve: false, cx: 0, cz: 0, bounces: 0, shotType: 0, hitCd: 0, tx: 0, tz: 0, looseT: 0 },
   phase: 'menu', clock: 0, half: 0, halfLen: 300, score: [0, 0], dir: [1, -1], poss: 0,
@@ -36,10 +36,12 @@ function placeTeams() {
   }
   S.P[14].x = 0; S.P[14].z = -7; S.P[15].x = 12; S.P[15].z = 8;
 }
+/* exhibition : léger décalage des postes d'attaque, tiré à chaque possession (profondeur, largeur) ; ailiers seulement vers l'intérieur, pivot inchangé */
+function jitterSlots(tm) { for (let r = 1; r < 7; r++) { const wing = r === ALG || r === ALD; tm.jit[2 * r] = r === PVT ? 0 : rndN() * (wing ? 0.6 : 0.9); tm.jit[2 * r + 1] = r === PVT ? 0 : wing ? -Math.sign(ATK_BASE[r][1]) * abs(rndN()) * 1.2 : rndN() * 1.1; } }
 function initMatch(seed, halfLen) {
   srand(seed || 20261118); initPlayers();
   S.clock = 0; S.half = 0; S.halfLen = halfLen || 300; S.score[0] = S.score[1] = 0; S.dir[0] = 1; S.dir[1] = -1; S.ev.length = 0; S.t = 0; S.yellows[0] = S.yellows[1] = 0; S.tmoUsed[0] = S.tmoUsed[1] = 0; S.tmoHalf[0] = S.tmoHalf[1] = 0;
-  S.train = null; S.tm[0] = mkTm(); S.tm[1] = mkTm(); S.sel = -1; S.ctl = -1; S.cheer = 0;
+  S.train = null; S.tm[0] = mkTm(); S.tm[1] = mkTm(); if (S.auto) { jitterSlots(S.tm[0]); jitterSlots(S.tm[1]); } S.sel = -1; S.ctl = -1; S.cheer = 0;
   for (const p of S.P) { p.susp = 0; p.off = false; p.yellow = false; p.twoMin = 0; p.disq = false; p.act = A_NONE; p.drib = false; p.ctrl = false; p.stance = 0; p.sig = 0; }
   placeTeams(); S.poss = 1; startRestart('eng', 0, 0, 0);
 }
@@ -51,7 +53,7 @@ function give(p) {
   for (let i = 0; i < 14; i++) S.P[i].recv = 0;
   if (S.poss !== p.team) {
     S.poss = p.team; S.pas.t = 0; S.pas.warn = false; S.pas.passes = 0;
-    const tm = S.tm[p.team]; tm.st = TRANS; tm.combo = null; tm.step = -1; tm.passes = 0; tm.tempo = 0; tm.strongAt = 3 + Math.floor(rnd() * 3); S.tm[1 - p.team].combo = null; S.tm[1 - p.team].step = -1; evt('possession', p.team);
+    const tm = S.tm[p.team]; tm.st = TRANS; tm.combo = null; tm.step = -1; tm.passes = 0; tm.tempo = 0; tm.strongAt = 3 + Math.floor(rnd() * 3); if (S.auto) jitterSlots(tm); S.tm[1 - p.team].combo = null; S.tm[1 - p.team].step = -1; evt('possession', p.team);
   }
 }
 function holder() { const b = S.ball; return b.state === B_HELD ? S.P[b.holder] : null; }
