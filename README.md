@@ -4,13 +4,15 @@ Cette page fournit quelques informations sur la **découverte d'outils en lien a
 
 Un LLM est un modèle d'apprentissage profond entraîné sur un gros volume de données capable de comprendre et générer des informations en langage avancé : langage naturel, traduction de texte, résolution de problèmes, etc.
 
-## Opencode et modèle [Ox Alpha](https://oxalpha.com/)
+## Handball Arena
 
-Cf. [handball-arena/README.md](handball-arena/README.md)
+### Opencode et modèle [Ox Alpha](https://oxalpha.com/)
 
-* [Jouer ici !](https://raw.githack.com/cvagner/ai-llm-walkthrough/main/handball-arena/index.html)
+Cf. [handball-arena/glm-5.3-flash/README.md](handball-arena/glm-5.3-flash/README.md)
 
-![Handball Arena](handball-arena/handball-arena.gif)
+* [Jouer ici !](https://raw.githack.com/cvagner/ai-llm-walkthrough/main/handball-arena/glm-5.3-flash/index.html)
+
+![Handball Arena](handball-arena/glm-5.3-flash/handball-arena.gif)
 
 ## Open WebUI et Ollama (`docker` et intégration)
 

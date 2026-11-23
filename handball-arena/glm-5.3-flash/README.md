@@ -1,6 +1,6 @@
 # 🤾 Handball Arena — essai du modèle **Ox Alpha**
 
-* [Jouer ici !](https://raw.githack.com/cvagner/ai-llm-walkthrough/main/handball-arena/index.html)
+* [Jouer ici !](https://raw.githack.com/cvagner/ai-llm-walkthrough/main/handball-arena/glm-5.3-flash/index.html)
 
 ![Handball Arena](handball-arena.gif)
 
