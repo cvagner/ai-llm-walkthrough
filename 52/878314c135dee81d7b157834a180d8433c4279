@@ -1,0 +1,147 @@
+handball-arena/fable-5.2/README.md
+  s_207f8b0e58be33::t_172f362b7130d9 69
+  s_207f8b0e58be33::t_6bbc45a4b05c53 92
+  s_207f8b0e58be33::t_572e3ae66f5e56 43
+  s_207f8b0e58be33::t_707306dc43e331 40-42
+  s_207f8b0e58be33::t_51f8e40bfa6a55 44-46,66-68
+  s_207f8b0e58be33::t_93884a8efba62a 70-72,89-91
+  s_207f8b0e58be33::t_1b05afc3abc399 93-95
+  s_207f8b0e58be33::t_f6264b3f66bfec 1-39,47-65,73-88,96-146
+handball-arena/fable-5.2/.gitignore
+  s_207f8b0e58be33::t_d930b7d60af20e 4-12
+  s_207f8b0e58be33::t_99fc0eec865ee0 1-3
+handball-arena/fable-5.2/index.html
+  s_b85a19ac894682::t_0d31ca716061c1 1-2100
+handball-arena/fable-5.2/prompt.txt
+  s_b85a19ac894682::t_b851a99d1114a1 1-61
+handball-arena/fable-5.2/source/js/01_gl.js
+  s_b85a19ac894682::t_c984acb04c0be8 1-84
+handball-arena/fable-5.2/source/js/20_render.js
+  s_b85a19ac894682::t_be7d7ac8452320 1-209
+handball-arena/fable-5.2/source/js/21_body.js
+  s_b85a19ac894682::t_efdaebdcf63de6 1-116
+handball-arena/fable-5.2/source/js/30_arena.js
+  s_b85a19ac894682::t_259b12e71da7fa 1-140
+handball-arena/fable-5.2/source/js/40_player.js
+  s_b85a19ac894682::t_a949bd0d4212d9 1-229
+handball-arena/fable-5.2/source/js/45_combos.js
+  s_b85a19ac894682::t_099b27f9d26886 1-58
+handball-arena/fable-5.2/source/js/50_sim.js
+  s_b85a19ac894682::t_ef6b79db666b59 1-440
+handball-arena/fable-5.2/source/js/51_ai.js
+  s_b85a19ac894682::t_17d7be8817dd28 1-336
+handball-arena/fable-5.2/source/js/55_replay.js
+  s_b85a19ac894682::t_161c9da2b6e79c 1-27
+handball-arena/fable-5.2/source/js/60_input.js
+  s_b85a19ac894682::t_f94d1674baac75 1-48
+handball-arena/fable-5.2/source/js/65_audio.js
+  s_b85a19ac894682::t_be513d79194db4 1-118
+handball-arena/fable-5.2/source/js/70_game.js
+  s_b85a19ac894682::t_29ff8f6698199d 1-95
+handball-arena/fable-5.2/source/js/90_main.js
+  s_b85a19ac894682::t_d36f6a9329cdb9 1-40
+handball-arena/fable-5.2/source/shell.html
+  s_b85a19ac894682::t_217025155afa11 1-47
+handball-arena/fable-5.2/travail/critique/tour1/avis.md
+  s_b85a19ac894682::t_a6f6f1970bbf0c 1-20
+handball-arena/fable-5.2/travail/critique/tour10/avis.md
+  s_b85a19ac894682::t_1385b820a22eac 1-20
+handball-arena/fable-5.2/travail/critique/tour11/avis.md
+  s_b85a19ac894682::t_34416cbfade9ed 1-13
+handball-arena/fable-5.2/travail/critique/tour12/avis.md
+  s_b85a19ac894682::t_c7d39757866ef1 1-10
+handball-arena/fable-5.2/travail/critique/tour13/avis.md
+  s_b85a19ac894682::t_e60d90d95fdb94 1-10
+handball-arena/fable-5.2/travail/critique/tour14/avis.md
+  s_b85a19ac894682::t_4fbf1679a50f99 1-20
+handball-arena/fable-5.2/travail/critique/tour15/avis.md
+  s_b85a19ac894682::t_6ba7d713fe94a7 1-20
+handball-arena/fable-5.2/travail/critique/tour16/avis.md
+  s_b85a19ac894682::t_9fa993afaf8ec8 1-13
+handball-arena/fable-5.2/travail/critique/tour2/avis.md
+  s_b85a19ac894682::t_def49c774959d8 1-17
+handball-arena/fable-5.2/travail/critique/tour3/avis.md
+  s_b85a19ac894682::t_1c3e3c2739368b 1-21
+handball-arena/fable-5.2/travail/critique/tour4/avis.md
+  s_b85a19ac894682::t_86efc152ceb533 1-15
+handball-arena/fable-5.2/travail/critique/tour5/avis.md
+  s_b85a19ac894682::t_62a6d37b39ab94 1-15
+handball-arena/fable-5.2/travail/critique/tour6/avis.md
+  s_b85a19ac894682::t_4a4fd110068cef 1-17
+handball-arena/fable-5.2/travail/critique/tour7/avis.md
+  s_b85a19ac894682::t_b27d2f7a064adb 1-17
+handball-arena/fable-5.2/travail/critique/tour8/avis.md
+  s_b85a19ac894682::t_c453d99bf21f7d 1-13
+handball-arena/fable-5.2/travail/critique/tour9/avis.md
+  s_b85a19ac894682::t_eb5a815ea0092f 1-26
+handball-arena/fable-5.2/travail/outils/demarche.mjs
+  s_b85a19ac894682::t_73d20b2e264efc 1-33
+handball-arena/fable-5.2/travail/outils/dribble-mesure.mjs
+  s_b85a19ac894682::t_6d403734ae8313 1-10
+handball-arena/fable-5.2/travail/outils/menu.mjs
+  s_b85a19ac894682::t_59229e27eb0600 1-8
+handball-arena/fable-5.2/travail/outils/package-lock.json
+  s_b85a19ac894682::t_e9553394eb9d5f 1-27
+handball-arena/fable-5.2/travail/outils/package.json
+  s_b85a19ac894682::t_20af5f5f716b5e 1-14
+handball-arena/fable-5.2/travail/outils/perf.mjs
+  s_b85a19ac894682::t_3b73db41b9fa52 1-17
+handball-arena/fable-5.2/travail/outils/planches.mjs
+  s_b85a19ac894682::t_a6fa36b644132b 1-43
+handball-arena/fable-5.2/travail/outils/poses.mjs
+  s_b85a19ac894682::t_0bf02c4982e64e 1-28
+handball-arena/fable-5.2/travail/outils/regles.mjs
+  s_b85a19ac894682::t_9d44da620c2f0c 1-103
+handball-arena/fable-5.2/travail/outils/sequence.mjs
+  s_b85a19ac894682::t_aa9fc378712676 1-24
+handball-arena/fable-5.2/travail/outils/son-poteau.mjs
+  s_b85a19ac894682::t_f6beb2bc0967de 1-14
+handball-arena/fable-5.2/travail/outils/son.mjs
+  s_b85a19ac894682::t_86ebb6328b4582 1-24
+handball-arena/fable-5.2/travail/outils/temps-fort.mjs
+  s_b85a19ac894682::t_4fd9714e25e1f7 1-18
+handball-arena/fable-5.2/travail/outils/trace-combo.mjs
+  s_b85a19ac894682::t_672787ba9519ad 1-9
+handball-arena/fable-5.2/travail/rapport-perf-1920x1080.json
+  s_b85a19ac894682::t_3eb0a355a7a29b 1-18
+handball-arena/fable-5.2/travail/rapport-regles.md
+  s_b85a19ac894682::t_db8ecf950a4e82 1-38
+handball-arena/fable-5.2/source/build.mjs
+  s_b85a19ac894682::t_a79167f93fe9c3 1-11
+handball-arena/fable-5.2/source/js/00_math.js
+  s_b85a19ac894682::t_e511c9a0fa1c87 1-46
+handball-arena/fable-5.2/source/js/10_court.js
+  s_b85a19ac894682::t_4d2dc3a28f7114 1-36
+handball-arena/fable-5.2/travail/critique/tour17/avis.md
+  s_b85a19ac894682::t_cf0da50c2c5f90 1-35
+handball-arena/fable-5.2/travail/outils/fumee.mjs
+  s_b85a19ac894682::t_c0ab5b4755aa7f 1-19
+handball-arena/fable-5.2/travail/outils/lib.mjs
+  s_b85a19ac894682::t_3409d775e59753 1-17
+handball-arena/fable-5.2/Echanges.md
+  s_b85a19ac894682::t_f9bbbb6ef1aa1a 1-185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "52878314c135dee81d7b157834a180d8433c4279",
+  "prompts": {},
+  "sessions": {
+    "s_207f8b0e58be33": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e00862c7-bd96-4dfa-adef-c542ea9fa10b",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Charles-Henry Vagner <cva@atolcd.com>"
+    },
+    "s_b85a19ac894682": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "016ea012-8651-4cf0-845a-9be5bec8b660",
+        "model": "claude-fable-5-2"
+      },
+      "human_author": "Charles-Henry Vagner <cva@atolcd.com>"
+    }
+  }
+}
