@@ -72,7 +72,7 @@ function showMenu(kind) {
   else {
     h = `<h1>Handball Arena</h1>
 <h2>Match — Hérons (vous) contre Atlas</h2><div class="row">${[[120, '2 × 2 min'], [300, '2 × 5 min'], [600, '2 × 10 min'], [1800, '2 × 30 min']].map(([v, l]) => `<button data-a="len" data-v="${v}" class="${menuState.len === v ? 'sel' : ''}">${l}</button>`).join('')}
-<button class="go" data-a="play">Jouer</button><button data-a="demo">Match d’exhibition</button></div>
+<button data-a="play">Jouer</button><button class="go" data-a="demo">Match d’exhibition</button></div>
 <h2>Défense adverse</h2><div class="row">${DEF_NAMES.map((n, i) => `<button data-a="def" data-v="${i}" class="${S.defSys[1] === i ? 'sel' : ''}">${n}</button>`).join('')}</div>
 <h2>Entraînement — combinaisons</h2><div class="row">${COMBOS.map((c, i) => c.variants.map((v, j) => `<button data-a="tc" data-v="${i},${j}">${c.n.split(' (')[0]} : ${v.n}</button>`).join('')).join('')}</div>
 <h2>Entraînement — tirs</h2><div class="row">${SHOTS.map((s, i) => `<button data-a="ts" data-v="${i}">${s.n}</button>`).join('')}</div>

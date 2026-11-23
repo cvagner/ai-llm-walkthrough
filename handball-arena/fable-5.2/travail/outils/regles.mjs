@@ -38,9 +38,9 @@ const res = await page.evaluate(() => {
   { const zs = hb.zoneDist(hb.uOf(spot.x, 1), spot.z); let ok = true, dmin = 99; for (let r = 1; r < 7; r++) { const p = S.P[7 + r], d = Math.hypot(p.x - spot.x, p.z - spot.z), zd = hb.zoneDist(hb.uOf(p.x, 1), p.z); if (zd > 6.9) { dmin = Math.min(dmin, d); if (d < 2.95) ok = false; } }
     T('Jet franc : lieu et distance des défenseurs', '13.6 à 13.8', zs >= 9 && zs < 9.3 && ok, `lieu à ${zs.toFixed(2)} m du but, défenseur avancé le plus proche à ${dmin === 99 ? '—' : dmin.toFixed(2) + ' m'}`); }
   // 9. jeu passif : avertissement puis cinquième passe reçue
-  hb.placed(true); reset(); S.pas.t = 25.9; let passes = 0, order = [2, 3, 4, 3];
+  hb.placed(true); reset(); S.defSys[1] = 0; /* passes scriptées prévues contre une 0-6 */ S.pas.t = 25.9; let passes = 0, order = [2, 3, 4, 3];
   run(1500, () => { if (has('jeu-passif') || S.poss !== 0) return false; const h = S.ball.state === 0 ? S.P[S.ball.holder] : null; if (h && h.team === 0 && !h.act && h.holdT > 0.25 && S.pas.warn) { const q = S.P[order[passes % 4] === h.id ? order[(passes + 1) % 4] : order[passes % 4]]; hb.startPass(h, q); passes++; } });
-  { const w = has('avertissement-passif'), e = has('jeu-passif'), rec = S.ev.filter(x => x.c === 'reception' && x.t >= (first('avertissement-passif')?.t || 0)).length; T('Jeu passif', '7.11 et 7.12', w && e && rec === 5 && first('reprise:jf')?.team === 1, `avertissement : ${w}, passes reçues après le geste : ${rec}, jet franc adverse : ${e}`); }
+  { const w = has('avertissement-passif'), e = has('jeu-passif'), rec = S.ev.filter(x => x.c === 'reception' && x.t >= (first('avertissement-passif')?.t || 0)).length; T('Jeu passif', '7.11 et 7.12', w && e && rec === 5 && first('reprise:jf')?.team === 1, `avertissement : ${w}, passes reçues après le geste : ${rec}, jet franc adverse : ${e}`); } S.defSys[1] = 2;
   // 10. exclusion de 2 minutes et retour
   hb.init(9, 600, true); reset(); run(300); S.ev.length = 0; const ex = S.P[9]; hb.sanction(ex, 2); const t0 = S.clock; let minField = 9;
   run(60 * 400, () => { let n = 0; for (let r = 1; r < 7; r++) if (!S.P[7 + r].off) n++; if (ex.off) minField = Math.min(minField, n); return !has('retour') || first('retour').a !== 9; });

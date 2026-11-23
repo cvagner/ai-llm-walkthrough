@@ -8,7 +8,7 @@ const S = {
   P: [], ball: { x: 0, y: 1, z: 0, vx: 0, vy: 0, vz: 0, rot: 0, spin: 0, state: B_LOOSE, holder: -1, kind: K_NONE, target: -1, shooter: -1, lastTeam: 0, lastP: -1, fly: 0, seen: 0, curve: false, cx: 0, cz: 0, bounces: 0, shotType: 0, hitCd: 0, tx: 0, tz: 0, looseT: 0 },
   phase: 'menu', clock: 0, half: 0, halfLen: 300, score: [0, 0], dir: [1, -1], poss: 0,
   rs: { type: '', team: 0, x: 0, z: 0, t: 0, wait: 0, exec: -1 }, setPiece: false,
-  pas: { t: 0, warn: false, passes: 0 }, tm: [mkTm(), mkTm()], defSys: [0, 0], auto: false, sel: -1, ctl: -1, charge: 0, charging: false,
+  pas: { t: 0, warn: false, passes: 0 }, tm: [mkTm(), mkTm()], defSys: [0, 2], auto: false, sel: -1, ctl: -1, charge: 0, charging: false,
   inp: { mx: 0, mz: 0, pass: false, shoot: false, drib: false, feint: false, kf: false, shotSel: 0, combo: -1, sw: false, tackle: false, block: false, aimH: 0, aimV: 0.5 },
   msg: '', msgT: 0, msgN: 0, ev: [], t: 0, netT: -9, netY: 1, netZ: 0, netS: 1, cheer: 0, yellows: [0, 0], train: null, comboMsg: '', comboN: 0, lastShot: -1, saveT: 0, tmoUsed: [0, 0], tmoHalf: [0, 0],
 };
