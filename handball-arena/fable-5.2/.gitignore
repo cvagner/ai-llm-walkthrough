@@ -1,0 +1,12 @@
+travail/outils/node_modules/
+travail/rendus/
+travail/fumee.png
+
+# Médias lourds et références : non versionnés
+sequence.mp4
+reference/
+travail/ref/
+travail/planches/
+travail/critique/**
+!travail/critique/*/
+!travail/critique/*/avis.md

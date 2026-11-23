@@ -1,0 +1,61 @@
+Construis un jeu de handball à 7 en 3D temps réel, qui tourne dans le navigateur : un match complet dans une salle, où je dirige une équipe en attaque comme en défense. Il doit avoir l'image d'un jeu de sport de premier plan de 2026 et jouer du vrai handball : placements, déplacements, combinaisons et gestes reconnaissables par un entraîneur.
+
+PRIORITÉS (dans cet ordre en cas de conflit)
+1. Justesse handball : règles, placements, courses, combinaisons, gestes de tir et de gardien
+2. Qualité visuelle : joueurs, animation, salle, lumière
+3. Prise en main : je comprends ce que je fais et le jeu répond sans délai
+4. Fréquence d'images stable sur la machine cible
+5. Taille du livrable
+
+CONTRAINTES
+- Pas de moteur ni de bibliothèque 3D ou de physique : ni three.js, ni Babylon.js, ni PlayCanvas, ni équivalent. Rendu en WebGL2 (sur la machine cible, Chrome sans fenêtre n'obtient le GPU matériel qu'en WebGL2, ce qui rend la boucle de vérification praticable).
+- Tout est procédural : aucun fichier de texture, de modèle, d'animation capturée, de HDRI ni de son. Joueurs, salle, ballon, filets, public, matériaux et sons sortent du code.
+- Le livrable est un unique `index.html` autonome dans ce dossier, qui s'ouvre sans réseau. Il est assemblé par une étape de build à partir des sources lisibles de `source/`. Indiquer la taille finale.
+- Zéro allocation JavaScript par image. Préallouer tous les tampons.
+- Salle, équipes, maillots et sponsors sont inventés : aucun club, joueur, logo, salle ni interface d'un jeu ou d'une compétition existants. Les images de `reference/` ne fixent qu'un niveau (lumière, matériaux, densité de détail, justesse des postures) et n'entrent pas dans la page.
+- Aucun gadget : pas de personnage invité, pas de clin d'œil, pas de commentateur fantaisiste.
+- Simulation à pas fixe et déterministe : mêmes entrées enregistrées, même match. Les vérifications en dépendent.
+
+CIBLE
+- Portable Linux, GPU intégré AMD Radeon 780M, Chrome 158, écran 1920×1200 à 60 Hz
+- 1920×1080 en pleine résolution. Temps par image ≤ 11 ms en moyenne et aucune image au-dessus de 16,7 ms pendant une séquence scénarisée de 60 s.
+
+SCÈNE
+- Une salle de handball couverte : terrain de 40 × 20 m avec tous ses tracés aux cotes du livret d'arbitrage de `reference/regles/` (surface de but, ligne de jet franc en pointillé, ligne de 7 m, ligne de limitation du gardien, ligne médiane, zones de changement), buts avec montants bicolores et filet qui se déforme à l'impact, bancs, table de marque, tableau d'affichage lisible
+- Un sol sportif qui réfléchit les lumières et les joueurs, avec ses joints, ses traces d'usure et de résine
+- Tribunes pleines d'un public qui réagit au jeu, éclairage de salle au plafond, ombres douces multiples, occlusion ambiante
+- 14 joueurs et 2 arbitres au gabarit d'athlètes : silhouettes différentes selon le poste (pivot massif, ailier fin, gardien grand), visages, mains avec des doigts qui tiennent le ballon, maillots numérotés dont le tissu plisse, chaussures, gardiens en tenue distincte
+- Un ballon de handball à panneaux cousus, de taille réglementaire, tenu à une main, qui tourne en vol et rebondit juste
+- Animation : course, course arrière, pas chassés défensifs, appuis, changements de direction, armé du bras, suspension, réception, contacts entre attaquant et défenseur, bloc du pivot, contre à deux bras, parades du gardien. Les pieds ne glissent pas sur le sol, les transitions ne sautent pas, les corps ne se traversent pas.
+- Post-traitement de jeu actuel : flou de mouvement, bloom, tone mapping et anticrénelage temporel, sans image fantôme ni crénelage sur les bords fins (filets, tracés, barrières)
+- Trois caméras : latérale haute de retransmission, rapprochée derrière le porteur, tactique du dessus. Ralenti après un but.
+
+JEU
+- Règles du livret d'arbitrage de `reference/regles/` : surface de but et empiètement, trois pas, trois secondes, dribble et reprise de dribble, jeu passif avec geste d'avertissement, jet franc à 9 m, jet de 7 m, engagement, remise en jeu, renvoi, avantage, avertissement, exclusion de 2 minutes, disqualification, changements par la zone de changement, gardien sorti pour jouer à 7 joueurs de champ. Les arbitres font le geste de chaque décision.
+- Postes réels : deux ailiers, deux arrières, demi-centre, pivot, gardien. Chacun tient son poste et son espace, avec un bras fort (au moins un gaucher côté droit).
+- Défenses 0-6, 1-5 et 3-2-1 : alignement, flottement côté ballon, montée sur le porteur, harcèlement, changement ou glissement sur les croisés, contre, repli défensif.
+- Attaque placée : circulation de balle avec fixations, croisés, bloc et glissement du pivot, entrées d'ailier, jeu à deux pivots. Montée de balle et contre-attaque après récupération.
+- Combinaisons annoncées et jouées par toute l'équipe, chacune avec ses variantes selon la réaction de la défense, fidèles aux fiches de `reference/combinaisons/` : en priorité l'espagnole (croisé central avec ses quatre variantes) et yago (d'après les captures de `reference/combinaisons/yago/`), puis les autres fiches. Combinaisons sur jet franc : hongroise, mur cassé à trois avec et sans écran, rentrée d'ailier.
+- Tirs, chacun avec son geste propre et son domaine d'emploi : en appui, en suspension, à la hanche, désaxé, tir d'ailier à angle fermé, tir en plongeant du pivot, lob, chabala, roucoulette, kung-fu, jet de 7 m. La trajectoire, l'effet et le rebond au sol découlent du geste.
+- Gardien : placement sur l'arc selon l'angle du tireur, parades hautes, basses, en croix, sortie sur l'ailier, relance longue pour la contre-attaque.
+- Je dirige le porteur de balle en attaque et le défenseur de mon choix en défense ; l'IA joue les autres et l'équipe adverse. Match en deux mi-temps de 5 minutes par défaut, durée réglable, temps morts d'équipe, score, chronomètre, exclusions en cours à l'écran.
+- Un mode entraînement qui joue chaque combinaison et chaque tir à la demande, au ralenti si je veux, avec la caméra tactique.
+
+CONTRÔLES
+Clavier et souris, et manette. Se déplacer, passer au coéquipier visé, tirer avec choix du geste et de la zone du but, feinter, dribbler, annoncer une combinaison, changer de défenseur, monter sur le porteur, contrer, changer de caméra, mettre en pause. La liste s'affiche à l'écran d'accueil.
+
+VÉRIFICATION
+- Critique visuel : un sous-agent distinct, neuf à chaque tour, qui ne voit QUE les rendus et les images de `reference/`, jamais le code ni le raisonnement. Il reçoit la liste des fichiers et l'échelle de gravité ci-dessous, rien d'autre : aucune explication de ce qui est voulu. Lui donner 8 poses de caméra fixes rendues à la résolution cible dans Chrome avec accélération GPU (salle entière, attaque placée, duel au contact, tireur en suspension en gros plan, gardien en parade, ballon en main en très gros plan, tribune, vue tactique) et la séquence scénarisée de 60 s, jouée par des commandes enregistrées et capturée image par image au pas fixe de 1/60 s. De la séquence, il reçoit une image toutes les demi-secondes et quatre rafales de 12 images consécutives prises sur un tir, une course, un contact et une parade, pour repérer scintillement, crénelage, apparition brutale, pieds qui glissent, membres qui se traversent et saccades d'animation. Il compare côte à côte avec les références et rend des défauts concrets, par ordre de priorité.
+- Critique handball : un second sous-agent, neuf à chaque tour, dans le rôle d'un entraîneur. Il ne voit QUE les fiches de `reference/combinaisons/`, les références de gestes de `reference/gestes/` et, pour chaque combinaison et chaque tir, une planche d'images en vue tactique du dessus avec les postes étiquetés, plus une rafale en vue rapprochée du geste. Il dit si la combinaison est celle de la fiche (courses, ordre et sens des passes, écran, tireur final), si le tir est bien le geste nommé, et si la défense réagit comme une vraie défense. Mêmes règles : aucune explication, défauts concrets, par ordre de priorité.
+- Échelle commune : « grave » se remarque en une seconde, comme une image qui n'est pas celle d'un jeu de premier plan ou comme un jeu qui n'est pas du handball ; « moyen » se remarque en regardant avec attention ; « mineur » n'apparaît qu'à la comparaison côte à côte. Itérer jusqu'à ce qu'aucun des deux critiques ne signale rien au-dessus de « mineur ».
+- Règles : une suite de tests automatisés sur la simulation sans rendu, une situation par règle (quatrième pas, plus de trois secondes, reprise de dribble, empiètement de l'attaquant et du défenseur, jeu passif, faute sur occasion manifeste, exclusion et retour après 2 minutes, engagement après but), qui vérifie la décision et la reprise du jeu.
+- Performance : requêtes de temps GPU et journal des temps d'image sur la séquence de 60 s jouée en temps réel. Indiquer moyenne, 99e centile et maximum.
+- Contrôles : un test automatisé qui actionne chaque commande et vérifie son effet, et un match complet joué IA contre IA sans blocage, sans joueur figé et avec un score plausible.
+
+BUDGET
+Travailler par tranches d'environ 2 heures. À la fin de chaque tranche, s'arrêter et rendre compte : ce qui est fait, ce qui ne l'est pas, le dernier avis de chaque critique. Le son, l'écran d'accueil détaillé et l'habillage font l'objet d'un second prompt.
+
+TERMINÉ QUAND : les cinq vérifications passent. Livrer `index.html`, sa taille, le rapport de performance, le rapport des tests de règles, le dernier avis de chaque critique et la vidéo de la séquence de 60 s dans `sequence.mp4`.
+
+ENVIRONNEMENT
+Chrome est dans `/usr/bin/google-chrome`, `node` et `ffmpeg` sont dans le PATH. Chrome sans fenêtre pour les rendus ; fenêtre visible seulement pour les mesures de performance. Ranger scripts, rendus et paquets des critiques dans `travail/`, dans ce dossier.

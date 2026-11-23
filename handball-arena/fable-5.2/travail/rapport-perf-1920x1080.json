@@ -1,0 +1,18 @@
+{
+ "gpu": "ANGLE (AMD, AMD Radeon 780M Graphics (radeonsi phoenix ACO), OpenGL ES 3.2)",
+ "requetes_temps_gpu": true,
+ "simulation_ms": {
+  "moyenne": 0.37,
+  "p99": 1.6,
+  "max": 6.1,
+  "au_dessus_16_7": 0
+ },
+ "rendu_ms": {
+  "moyenne": 7.48,
+  "p99": 22.6,
+  "max": 32.5,
+  "au_dessus_16_7": 95
+ },
+ "heap": 29400000,
+ "resolution": "1920×1080"
+}

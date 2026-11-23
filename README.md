@@ -6,6 +6,16 @@ Un LLM est un modèle d'apprentissage profond entraîné sur un gros volume de d
 
 ## Handball Arena
 
+### Claude code et modèle Fable 5.2, méthode `Abyssal Garden`
+
+Méthode d'[Abyssal Garden](https://github.com/Noniv/abyssal-garden) : un cahier des charges structuré, des contraintes dures, et des critiques indépendants qui ne voient que les rendus et les références.
+
+Cf. [handball-arena/fable-5.2/README.md](handball-arena/fable-5.2/README.md)
+
+* [Jouer ici !](https://raw.githack.com/cvagner/ai-llm-walkthrough/main/handball-arena/fable-5.2/index.html)
+
+![Handball Arena](handball-arena/fable-5.2/handball-arena.gif)
+
 ### Opencode et modèle [Ox Alpha](https://oxalpha.com/)
 
 Cf. [handball-arena/glm-5.3-flash/README.md](handball-arena/glm-5.3-flash/README.md)
