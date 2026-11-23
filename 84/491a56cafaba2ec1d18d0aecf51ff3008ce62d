@@ -1,0 +1,14 @@
+handball-arena/glm-5.3-flash/README.md
+  h_2ce8ab7e68bb81 1-132
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "84491a56cafaba2ec1d18d0aecf51ff3008ce62d",
+  "prompts": {},
+  "humans": {
+    "h_2ce8ab7e68bb81": {
+      "author": "Charles-Henry Vagner <cva@atolcd.com>"
+    }
+  }
+}
