@@ -38,7 +38,7 @@ function updateCam(dt, snap) {
 function setCam(x, y, z, tx, ty, tz, fov) { const c = R.cam; c.x = x; c.y = y; c.z = z; c.tx = tx; c.ty = ty; c.tz = tz; c.fov = fov; camFixed = true; }
 
 // ---------- menus
-let menuState = { len: 300 };
+let menuState = { len: 300, def0: -1 }; /* def0 : défense des Hérons mise de côté pendant une exhibition */
 function controlsTable() {
   return `<div class="cols"><table><tr><th>Attaque</th><th>Clavier</th><th>Manette</th></tr>
 <tr><td>Se déplacer</td><td><kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd> ou flèches</td><td>stick gauche</td></tr>
@@ -86,8 +86,8 @@ $('panel').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return; const a = b.dataset.a, v = b.dataset.v;
   if (a === 'len') { menuState.len = +v; showMenu('home'); }
   else if (a === 'def') { S.defSys[1] = +v; showMenu('home'); }
-  else if (a === 'play') { S.auto = false; initMatch(Date.now() & 0xffffff, menuState.len); UI.cam = 0; hideMenu(); updateCam(0, true); }
-  else if (a === 'demo') { S.auto = true; initMatch(Date.now() & 0xffffff, menuState.len); UI.cam = 0; hideMenu(); updateCam(0, true); }
+  else if (a === 'play') { if (menuState.def0 >= 0) { S.defSys[0] = menuState.def0; menuState.def0 = -1; } S.auto = false; initMatch(Date.now() & 0xffffff, menuState.len); UI.cam = 0; hideMenu(); updateCam(0, true); }
+  else if (a === 'demo') { if (menuState.def0 < 0) menuState.def0 = S.defSys[0]; S.defSys[0] = S.defSys[1]; /* exhibition : même défense des deux côtés */ S.auto = true; initMatch(Date.now() & 0xffffff, menuState.len); UI.cam = 0; hideMenu(); updateCam(0, true); }
   else if (a === 'tc') { const [i, j] = v.split(',').map(Number); startTrain('combo', i, j); UI.cam = 2; hideMenu(); updateCam(0, true); }
   else if (a === 'ts') { startTrain('tir', +v, 0); UI.cam = 1; hideMenu(); updateCam(0, true); }
   else if (a === 'resume') hideMenu();
