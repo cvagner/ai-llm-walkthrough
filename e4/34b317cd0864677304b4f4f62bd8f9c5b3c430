@@ -1,0 +1,63 @@
+local-chat-with-postgres/compose.yml
+  s_2a58aff26305fe::t_983323ac0f0e43 70-71
+  s_2a58aff26305fe::t_b5d72c57c434f3 144-146,150,154,158,164,167-168
+  s_2a58aff26305fe::t_162f2ee96da970 147-149
+  s_2a58aff26305fe::t_afb758194163ad 138,141
+  s_2a58aff26305fe::t_14c5116bb0bd0a 142
+  s_2a58aff26305fe::t_9a77b12604f0a1 3-69,73-137,139-140,143,151-153,155-157,159-163,165-166,169-175
+  s_2a58aff26305fe::t_c9b8eaeef2e30e 1-2
+  s_2a58aff26305fe::t_d1e2c6ba8449e2 72
+  s_2a58aff26305fe::t_ddc0cbdb591a24 176-177
+local-chat-with-postgres/config/ollama/assistant-postgis.Modelfile
+  s_2a58aff26305fe::t_82eecdaf0cc852 1-2,5-15
+  s_2a58aff26305fe::t_02dd317c31cc89 3-4
+local-chat-with-postgres/scripts/ask.py
+  s_2a58aff26305fe::t_bbdc66aaadeea6 1-87
+local-chat-with-postgres/.gitignore
+  s_207f8b0e58be33::t_66205dc8672de6 1
+local-chat-with-postgres/.env.example
+  s_2a58aff26305fe::t_4c1704fa17c03f 1-16,19-23
+  s_2a58aff26305fe::t_6fbf8e4f29e925 17-18
+local-chat-with-postgres/README.md
+  s_2a58aff26305fe::t_f48f8dcebe5b3f 76-86
+  s_2a58aff26305fe::t_b8a49d8258d5a2 3-13,15-74,87-89,91-111
+  s_2a58aff26305fe::t_c10c5f8fd84387 14
+  s_2a58aff26305fe::t_414950c6219e6b 90
+  s_2a58aff26305fe::t_630c3d1918b447 1-2
+  s_2a58aff26305fe::t_24f10a6043bab3 75
+local-chat-with-postgres/config/mcpo/config.json
+  s_2a58aff26305fe::t_7589c6037d72e5 1-8
+local-chat-with-postgres/init-scripts/01-init-natural-earth.sh
+  s_2a58aff26305fe::t_c2174355d982d0 1-87
+local-chat-with-postgres/init-scripts/02-init-demo-data.sh
+  s_2a58aff26305fe::t_538499ca529c13 1-137
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "e434b317cd0864677304b4f4f62bd8f9c5b3c430",
+  "prompts": {},
+  "humans": {
+    "h_2ce8ab7e68bb81": {
+      "author": "Charles-Henry Vagner <cva@atolcd.com>"
+    }
+  },
+  "sessions": {
+    "s_207f8b0e58be33": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e00862c7-bd96-4dfa-adef-c542ea9fa10b",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Charles-Henry Vagner <cva@atolcd.com>"
+    },
+    "s_2a58aff26305fe": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fec4a0c9-374b-46c2-8b84-52a731326dd2",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Charles-Henry Vagner <cva@atolcd.com>"
+    }
+  }
+}
