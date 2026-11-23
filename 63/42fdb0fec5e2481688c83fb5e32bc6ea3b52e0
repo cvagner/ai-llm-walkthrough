@@ -1,0 +1,29 @@
+handball-arena/fable-5.2/source/js/51_ai.js
+  s_b7e29883fd79b9::t_556f5a255bef25 170
+handball-arena/fable-5.2/source/js/70_game.js
+  s_b7e29883fd79b9::t_556f5a255bef25 90
+handball-arena/fable-5.2/source/js/50_sim.js
+  s_b7e29883fd79b9::t_556f5a255bef25 6,39-40,56
+  s_b7e29883fd79b9::t_4b71e923d12a62 44
+handball-arena/fable-5.2/travail/rapport-regles.md
+  s_b7e29883fd79b9::t_84adb58603b40f 15,22
+handball-arena/fable-5.2/index.html
+  s_b7e29883fd79b9::t_4b71e923d12a62 1025
+  s_b7e29883fd79b9::t_556f5a255bef25 987,1020-1021,1037,1595,2053
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "6342fdb0fec5e2481688c83fb5e32bc6ea3b52e0",
+  "prompts": {},
+  "sessions": {
+    "s_b7e29883fd79b9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "147dd801-dfaf-4fd1-9a39-bba64afb8e15",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Charles-Henry Vagner <cva@atolcd.com>"
+    }
+  }
+}
